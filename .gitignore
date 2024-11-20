@@ -123,3 +123,7 @@ local_settings.py
 
 .env
 db.sqlite3
+
+### Custom ###
+process-server
+hls

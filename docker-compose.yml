@@ -5,13 +5,13 @@ services:
       - "1935:1935"
       - "8080:8080"
     volumes:
-      - video_stream_data:/tmp/hls
+      - ./hls:/tmp/hls
       - ./rtmp:/etc/nginx
   process:
     build: ./process/
     depends_on:
       - rtmp
     volumes:
-      - video_stream_data:/tmp/hls
+      - ./hls:/tmp/hls
 volumes:
   video_stream_data:
