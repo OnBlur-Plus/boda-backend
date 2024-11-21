@@ -1,4 +1,3 @@
-// database-config.service.ts
 import { Injectable } from '@nestjs/common';
 import { AbstractConfigService } from '@nestjs-library/config';
 import { Expose, Transform } from 'class-transformer';

@@ -1,23 +1,11 @@
-import {
-  ClassSerializerInterceptor,
-  HttpStatus,
-  UnprocessableEntityException,
-  ValidationPipe,
-} from '@nestjs/common';
+import { ClassSerializerInterceptor, HttpStatus, UnprocessableEntityException, ValidationPipe } from '@nestjs/common';
 import { NestFactory, Reflector } from '@nestjs/core';
-import {
-  ExpressAdapter,
-  NestExpressApplication,
-} from '@nestjs/platform-express';
+import { ExpressAdapter, NestExpressApplication } from '@nestjs/platform-express';
 import { EnvConfigService } from 'src/module/config/env-config.service';
 import { MainModule } from 'src/module/main.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(
-    MainModule,
-    new ExpressAdapter(),
-    { cors: true },
-  );
+  const app = await NestFactory.create<NestExpressApplication>(MainModule, new ExpressAdapter(), { cors: true });
 
   const environmentService = app.get(EnvConfigService);
 
