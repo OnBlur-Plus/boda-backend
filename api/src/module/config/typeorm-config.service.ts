@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { AbstractConfigService, OptionalBoolean } from '@nestjs-library/config';
 import { Expose, Transform, Type } from 'class-transformer';
 import { IsBoolean, IsNotEmpty, IsPositive, IsString } from 'class-validator';
@@ -46,4 +46,10 @@ export class TypeORMConfigService
   @IsBoolean()
   @IsNotEmpty()
   autoLoadEntities: boolean;
+
+  @Expose({ name: 'DATABASE_SYNCHRONIZE' })
+  @Transform(({ value }) => OptionalBoolean(value) ?? false)
+  @IsBoolean()
+  @IsNotEmpty()
+  synchronize: boolean;
 }

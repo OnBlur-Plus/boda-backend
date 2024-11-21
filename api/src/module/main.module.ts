@@ -12,7 +12,7 @@ import { StreamModule } from 'src/stream/stream.module';
       inject: [TypeORMConfigService],
       useFactory: (typeORMConfigService: TypeORMConfigService) => typeORMConfigService,
     }),
-    // StreamModule,
+    StreamModule,
   ],
   controllers: [HealthController],
   providers: [],
