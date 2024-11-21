@@ -3,7 +3,7 @@ import { CreateStreamDto } from './dto/create-stream.dto';
 import { UpdateStreamDto } from './dto/update-stream.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Stream } from 'src/stream/entities/stream.entity';
+import { Stream } from 'src/module/stream/entities/stream.entity';
 
 @Injectable()
 export class StreamService {

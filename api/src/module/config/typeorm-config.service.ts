@@ -3,12 +3,17 @@ import { AbstractConfigService, OptionalBoolean } from '@nestjs-library/config';
 import { Expose, Transform, Type } from 'class-transformer';
 import { IsBoolean, IsNotEmpty, IsPositive, IsString } from 'class-validator';
 import { MysqlConnectionOptions } from 'typeorm/driver/mysql/MysqlConnectionOptions';
+import { TypeOrmOptionsFactory } from '@nestjs/typeorm';
 
 @Injectable()
 export class TypeORMConfigService
   extends AbstractConfigService<TypeORMConfigService>
-  implements MysqlConnectionOptions
+  implements MysqlConnectionOptions, TypeOrmOptionsFactory
 {
+  onModuleInit(): void {}
+  createTypeOrmOptions() {
+    return this;
+  }
   type = 'mariadb' as const;
 
   @Expose({ name: 'DATABASE_HOST' })
