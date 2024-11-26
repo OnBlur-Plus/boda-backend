@@ -9,7 +9,6 @@ async function bootstrap() {
 
   const environmentService = app.get(EnvConfigService);
 
-  // const isProduction = environmentService.isProduction();
   const port = environmentService.lport;
 
   // app.use(helmet({ contentSecurityPolicy: false }));
