@@ -125,5 +125,7 @@ local_settings.py
 db.sqlite3
 
 ### Custom ###
-process-server
-hls
+
+hls/
+
+streaming/streaming
