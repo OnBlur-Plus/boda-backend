@@ -1,6 +1,6 @@
 import { IsString, Matches } from 'class-validator';
 
-export class SignInDto {
+export class VerifyDto {
   @IsString()
   @Matches(/^[0-9]{4}$/)
   pin: string;

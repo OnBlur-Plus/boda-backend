@@ -25,7 +25,7 @@ export class Accident {
   id: number;
 
   @JoinColumn({ name: 'stream_key' })
-  @ManyToOne(() => Stream)
+  @ManyToOne(() => Stream, { cascade: true })
   stream: Stream;
 
   @Column({ name: 'start_at' })
@@ -34,10 +34,10 @@ export class Accident {
   @Column({ name: 'end_at' })
   endAt: Date;
 
-  @Column({ enum: AccidentType })
+  @Column({ type: 'enum', enum: AccidentType })
   type: AccidentType;
 
-  @Column({ enum: AccidentLevel })
+  @Column({ type: 'enum', enum: AccidentLevel })
   level: AccidentLevel;
 
   @Column({ nullable: true })

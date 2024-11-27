@@ -19,7 +19,7 @@ export class Stream {
   @Column({ name: 'thumbnail_url', nullable: true })
   thumbnailUrl: string;
 
-  @Column({ enum: StreamStatus })
+  @Column({ type: 'enum', enum: StreamStatus })
   status: StreamStatus;
 
   @CreateDateColumn({ name: 'created_at' })
