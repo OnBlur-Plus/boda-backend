@@ -8,11 +8,11 @@ export class Notification {
   id: number;
 
   @JoinColumn({ name: 'user_id' })
-  @ManyToOne(() => User)
+  @ManyToOne(() => User, { cascade: true })
   user: User;
 
   @JoinColumn({ name: 'accident_id' })
-  @ManyToOne(() => Accident)
+  @ManyToOne(() => Accident, { cascade: true })
   accident: Accident;
 
   @Column({ name: 'readed_at', nullable: true })

@@ -1,8 +1,9 @@
+import { Repository } from 'typeorm';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from './entities/user.entity';
-import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
+import { User } from './entities/user.entity';
+import { VerifyDto } from './dto/verify.dto';
 
 @Injectable()
 export class AuthService {
@@ -11,7 +12,7 @@ export class AuthService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
-  async signIn(pin: string) {
+  async verify({ pin }: VerifyDto) {
     const user = await this.userRepository.findOne({ where: { pin } });
 
     if (!user) {

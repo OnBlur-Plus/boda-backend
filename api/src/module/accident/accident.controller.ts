@@ -1,19 +1,31 @@
-import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { AccidentService } from './accident.service';
+import { DatePipe } from './pipe/date.pipe';
 
 @Controller('accident')
 export class AccidentController {
   constructor(private readonly accidentService: AccidentService) {}
 
   @Get()
-  findAllRecentAccidents(@Query('limit', ParseIntPipe) limit: number = 5) {}
+  async findAllAccidents(
+    @Query('pageNum', new DefaultValuePipe(1), ParseIntPipe) pageNum: number,
+    @Query('pageSize', new DefaultValuePipe(10), ParseIntPipe) pageSize: number,
+  ) {
+    return await this.accidentService.getAccidents(pageNum, pageSize);
+  }
 
   @Get('count')
-  getCountOfAccidents(@Query('date') date: string) {}
+  async getCountOfAccidents(@Query('date', DatePipe) date: string) {
+    return await this.accidentService.getCountOfAccidents(new Date(date));
+  }
 
   @Get('stream/:streamKey')
-  getAccidentsByStreamKey(@Param('streamKey') streamKey: string) {}
+  async getAccidentsByStreamKey(@Param('streamKey') streamKey: string) {
+    return await this.accidentService.getAccidentsByStreamKey(streamKey);
+  }
 
   @Get('detail/:id')
-  getAccident(@Param('id', ParseIntPipe) id: number) {}
+  async getAccident(@Param('id', ParseIntPipe) id: number) {
+    return await this.accidentService.getAccident(id);
+  }
 }
