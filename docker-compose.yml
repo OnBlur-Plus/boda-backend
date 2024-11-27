@@ -1,17 +1,30 @@
 services:
-  rtmp:
-    build: ./rtmp/
+  # rtmp:
+  #   build: ./rtmp/
+  #   ports:
+  #     - 1935:1935
+  #     - 8080:8080
+  #   volumes:
+  #     - ./hls:/tmp/hls
+  #     - ./rtmp:/etc/nginx
+  streaming:
+    build: ./streaming/
+    volumes:
+      - ./streaming/conatiners/data/config:/usr/local/srs/containers/data/config
+      - ./streaming/containers/conf/srs.release-mac.conf:/usr/local/srs/conf/docker.conf
+      - ./streaming/containers/objs/nginx:/usr/local/srs/objs/nginx
     ports:
-      - "1935:1935"
-      - "8080:8080"
+      - 1935:1935 # rtmp
+      - 1985:1985 #
+      - 8080:8080
+      - 8000:8000/udp
+      - 10080:10080/udp
+  redis:
+    image: redis:5.0
+    container_name: redis
+    ports:
+      - "6379:6379"
     volumes:
-      - ./hls:/tmp/hls
-      - ./rtmp:/etc/nginx
-  process:
-    build: ./process/
-    depends_on:
-      - rtmp
-    volumes:
-      - ./hls:/tmp/hls
+      - "$HOME/data/redis:/data"
 volumes:
   video_stream_data:
