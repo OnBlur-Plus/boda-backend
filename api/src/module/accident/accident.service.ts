@@ -25,4 +25,8 @@ export class AccidentService {
   async getAccident(id: number) {
     return await this.accidentRepository.findOne({ where: { id } });
   }
+
+  async createAccident(accident: Omit<Accident, 'id' | 'createdAt' | 'updatedAt'>) {
+    return await this.accidentRepository.save(accident);
+  }
 }
