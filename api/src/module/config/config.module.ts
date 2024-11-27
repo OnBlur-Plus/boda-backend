@@ -1,4 +1,4 @@
-import { DynamicModule, Global, Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 import { ConfigModule, DotenvSourceProvider } from '@nestjs-library/config';
 
 import { NodeEnv } from 'src/constant/node-env.enum';
@@ -6,6 +6,7 @@ import path from 'path';
 import { TypeORMConfigService } from 'src/module/config/typeorm-config.service';
 import { EnvConfigService } from 'src/module/config/env-config.service';
 import { JwtConfigService } from 'src/module/config/jwt-config.service';
+import { FirebaseConfigService } from './firebase-config.service';
 
 export const getEnvFilePath = () =>
   path.join(
@@ -16,7 +17,7 @@ export const getEnvFilePath = () =>
 @Global()
 @Module({
   imports: [
-    ConfigModule.forFeature([TypeORMConfigService, EnvConfigService, JwtConfigService], {
+    ConfigModule.forFeature([TypeORMConfigService, EnvConfigService, JwtConfigService, FirebaseConfigService], {
       global: true,
       sourceProvider: new DotenvSourceProvider({ path: getEnvFilePath() }),
     }),
