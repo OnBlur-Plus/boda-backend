@@ -58,21 +58,29 @@ const (
 	// SRS_HTTPS_DOMAIN    = "SRS_HTTPS_DOMAIN"
 	SRS_HOOKS           = "SRS_HOOKS"
 	SRS_SYS_LIMITS      = "SRS_SYS_LIMITS"
+	
+	RECORD_M3U8_ARTIFACT = "RECORD_M3U8_ARTIFACT"
 )
 
-func envPlatformListen() string {
-	return os.Getenv("PLATFORM_LISTEN")
-}
-func envMgmtListen() string {
-	return os.Getenv("MGMT_LISTEN")
+// GenerateRoomPublishKey to build the redis hashset key from room stream name.
+func GenerateRoomPublishKey(roomStreamName string) string {
+	return fmt.Sprintf("room-pub-%v", roomStreamName)
 }
 
-func envRegion() string {
-	return os.Getenv("REGION")
+func envApiSecret() string {
+	return os.Getenv("API_SECRET")
 }
 
 func envSource() string {
 	return os.Getenv("SOURCE")
+}
+
+func envPlatformListen() string {
+	return os.Getenv("PLATFORM_LISTEN")
+}
+
+func envMgmtListen() string {
+	return os.Getenv("MGMT_LISTEN")
 }
 
 func envHttpListen() string {
@@ -126,8 +134,6 @@ func setEnvDefault(key, value string) {
 	}
 }
 
-
-// rdb is a global redis client object.
 var rdb *redis.Client
 
 // InitRdb create and init global rdb, which is a redis client.
@@ -143,128 +149,6 @@ func InitRdb() error {
 		DB:       redisDatabase,
 	})
 	return nil
-}
-
-// buildVodM3u8 go generate dynamic m3u8.
-func buildVodM3u8(
-	ctx context.Context, metadata *M3u8VoDArtifact, absUrl bool, domain string, useKey bool, prefix string,
-) (
-	contentType, m3u8Body string, duration float64, err error,
-) {
-	if metadata == nil {
-		err = errors.New("no m3u8 metadata")
-		return
-	}
-	if metadata.UUID == "" {
-		err = errors.Errorf("no uuid of %v", metadata.String())
-		return
-	}
-	if len(metadata.Files) == 0 {
-		err = errors.Errorf("no files of %v", metadata.String())
-		return
-	}
-	if absUrl && metadata.Bucket == "" {
-		err = errors.Errorf("no bucket of %v", metadata.String())
-		return
-	}
-	if absUrl && metadata.Region == "" {
-		err = errors.Errorf("no region of %v", metadata.String())
-		return
-	}
-
-	for _, file := range metadata.Files {
-		duration += file.Duration
-	}
-
-	m3u8 := []string{
-		"#EXTM3U",
-		"#EXT-X-VERSION:3",
-		"#EXT-X-ALLOW-CACHE:YES",
-		"#EXT-X-PLAYLIST-TYPE:VOD",
-		fmt.Sprintf("#EXT-X-TARGETDURATION:%v", math.Ceil(duration)),
-		"#EXT-X-MEDIA-SEQUENCE:0",
-	}
-	for index, file := range metadata.Files {
-		// TODO: FIXME: Identify discontinuity by callback.
-		if index < len(metadata.Files)-2 {
-			next := metadata.Files[index+1]
-			if file.SeqNo+1 != next.SeqNo {
-				m3u8 = append(m3u8, "#EXT-X-DISCONTINUITY")
-			}
-		}
-
-		m3u8 = append(m3u8, fmt.Sprintf("#EXTINF:%.2f, no desc", file.Duration))
-
-		var tsURL string
-		if absUrl {
-			if domain != "" {
-				tsURL = fmt.Sprintf("https://%v/%v", domain, file.Key)
-			} else {
-				tsURL = fmt.Sprintf("https://%v.cos.%v.myqcloud.com/%v", metadata.Bucket, metadata.Region, file.Key)
-			}
-		} else {
-			if useKey {
-				tsURL = fmt.Sprintf("%v%v", prefix, file.Key)
-			} else {
-				tsURL = fmt.Sprintf("%v%v.ts", prefix, file.TsID)
-			}
-		}
-		m3u8 = append(m3u8, tsURL)
-	}
-	m3u8 = append(m3u8, "#EXT-X-ENDLIST")
-
-	contentType = "application/vnd.apple.mpegurl"
-	m3u8Body = strings.Join(m3u8, "\n")
-	return
-}
-
-// buildVodM3u8ForLocal go generate dynamic m3u8.
-func buildVodM3u8ForLocal(
-	ctx context.Context, tsFiles []*TsFile, useKey bool, prefix string,
-) (
-	contentType, m3u8Body string, duration float64, err error,
-) {
-	if len(tsFiles) == 0 {
-		err = errors.Errorf("no files")
-		return
-	}
-
-	for _, file := range tsFiles {
-		duration += file.Duration
-	}
-
-	m3u8 := []string{
-		"#EXTM3U",
-		"#EXT-X-VERSION:3",
-		"#EXT-X-ALLOW-CACHE:YES",
-		"#EXT-X-PLAYLIST-TYPE:VOD",
-		fmt.Sprintf("#EXT-X-TARGETDURATION:%v", math.Ceil(duration)),
-		"#EXT-X-MEDIA-SEQUENCE:0",
-	}
-	for index, file := range tsFiles {
-		// TODO: FIXME: Identify discontinuity by callback.
-		if index < len(tsFiles)-2 {
-			next := tsFiles[index+1]
-			if file.SeqNo+1 != next.SeqNo {
-				m3u8 = append(m3u8, "#EXT-X-DISCONTINUITY")
-			}
-		}
-
-		m3u8 = append(m3u8, fmt.Sprintf("#EXTINF:%.2f, no desc", file.Duration))
-
-		var tsURL string
-		if useKey {
-			tsURL = fmt.Sprintf("%v%v", prefix, file.Key)
-		} else {
-			tsURL = fmt.Sprintf("%v%v.ts", prefix, file.TsID)
-		}
-		m3u8 = append(m3u8, tsURL)
-	}
-	m3u8 = append(m3u8, "#EXT-X-ENDLIST")
-
-	contentType = "application/vnd.apple.mpegurl"
-	m3u8Body = strings.Join(m3u8, "\n")
-	return
 }
 
 // buildLiveM3u8ForLocal go generate dynamic m3u8.
@@ -371,96 +255,6 @@ func (v *TsFile) String() string {
 	return fmt.Sprintf("key=%v, id=%v, url=%v, seqno=%v, duration=%v, size=%v, file=%v",
 		v.Key, v.TsID, v.URL, v.SeqNo, v.Duration, v.Size, v.File,
 	)
-}
-
-// M3u8VoDArtifact is a HLS VoD object. Because each Dvr/Vod/RecordM3u8Stream might be DVR to many VoD file,
-// each is an M3u8VoDArtifact. For example, when user publish live/livestream, there is a Dvr/Vod/RecordM3u8Stream and
-// M3u8VoDArtifact, then user unpublish stream and after some seconds a VoD file is generated by M3u8VoDArtifact. Then
-// if user republish the stream, there will be a new M3u8VoDArtifact to DVR the stream.
-type M3u8VoDArtifact struct {
-	// Number of ts files.
-	NN int `json:"nn"`
-	// The last update time.
-	Update string `json:"update"`
-	// The uuid of M3u8VoDArtifact, generated by worker, such as 3ECF0239-708C-42E4-96E1-5AE935C6E6A9
-	UUID string `json:"uuid"`
-	// The url of m3u8, generated by SRS, such as live/livestream/live.m3u8
-	M3u8URL string `json:"m3u8_url"`
-
-	// The vhost of stream, generated by SRS, such as video.test.com
-	Vhost string `json:"vhost"`
-	// The app of stream, generated by SRS, such as live
-	App string `json:"app"`
-	// The name of stream, generated by SRS, such as livestream
-	Stream string `json:"stream"`
-
-	// TODO: FIXME: It's a typo progress.
-	// The Record is processing, use local m3u8 address to preview or download.
-	Processing bool `json:"progress"`
-	// The done time.
-	Done string `json:"done"`
-	// The ts files of this m3u8.
-	Files []*TsFile `json:"files"`
-
-	// For DVR only.
-	// The COS bucket name.
-	Bucket string `json:"bucket"`
-	// The COS bucket region.
-	Region string `json:"region"`
-
-	// For VoD only.
-	// The file ID generated by VoD commit.
-	FileID   string `json:"fileId"`
-	MediaURL string `json:"mediaUrl"`
-	// The remux task of VoD.
-	Definition uint64 `json:"definition"`
-	TaskID     string `json:"taskId"`
-	// The remux task result.
-	Task *VodTaskArtifact `json:"taskObj"`
-}
-
-func (v *M3u8VoDArtifact) String() string {
-	var sb strings.Builder
-	sb.WriteString(fmt.Sprintf("uuid=%v, done=%v, update=%v, processing=%v, files=%v",
-		v.UUID, v.Done, v.Update, v.Processing, len(v.Files),
-	))
-	if v.Bucket != "" {
-		sb.WriteString(fmt.Sprintf(", bucket=%v", v.Bucket))
-	}
-	if v.Region != "" {
-		sb.WriteString(fmt.Sprintf(", region=%v", v.Region))
-	}
-	if v.FileID != "" {
-		sb.WriteString(fmt.Sprintf(", fileId=%v", v.FileID))
-	}
-	if v.MediaURL != "" {
-		sb.WriteString(fmt.Sprintf(", mediaUrl=%v", v.MediaURL))
-	}
-	if v.Definition != 0 {
-		sb.WriteString(fmt.Sprintf(", definition=%v", v.Definition))
-	}
-	if v.TaskID != "" {
-		sb.WriteString(fmt.Sprintf(", taskId=%v", v.TaskID))
-	}
-	if v.Task != nil {
-		sb.WriteString(fmt.Sprintf(", task=(%v)", v.Task.String()))
-	}
-	return sb.String()
-}
-
-// VodTaskArtifact is the final artifact for remux task.
-type VodTaskArtifact struct {
-	URL      string  `json:"url"`
-	Bitrate  int64   `json:"bitrate"`
-	Height   int32   `json:"height"`
-	Width    int32   `json:"width"`
-	Size     int64   `json:"size"`
-	Duration float64 `json:"duration"`
-	MD5      string  `json:"md5"`
-}
-
-func (v *VodTaskArtifact) String() string {
-	return fmt.Sprintf("url=%v", v.URL)
 }
 
 // SrsOnHlsMessage is the SRS on_hls callback message.
