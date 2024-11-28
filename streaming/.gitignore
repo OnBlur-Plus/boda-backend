@@ -1,0 +1,4 @@
+/containers/objs/nginx/html/live/*
+/containers/data/*
+!/containers/data/config
+.env

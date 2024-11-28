@@ -8,9 +8,9 @@ services:
   #     - ./hls:/tmp/hls
   #     - ./rtmp:/etc/nginx
   streaming:
-    build: ./streaming/
+    image: ossrs/srs:5
     volumes:
-      - ./streaming/conatiners/data/config:/usr/local/srs/containers/data/config
+      - ./streaming/containers/data/config/:/usr/local/srs/containers/data/config/
       - ./streaming/containers/conf/srs.release-mac.conf:/usr/local/srs/conf/docker.conf
       - ./streaming/containers/objs/nginx:/usr/local/srs/objs/nginx
     ports:
