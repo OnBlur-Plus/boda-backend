@@ -10,8 +10,6 @@ import (
 	"os"
 	"os/signal"
 	"path"
-	"path/filepath"
-	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -61,7 +59,7 @@ func doMain(ctx context.Context) error {
 	// may be blocked for some reason, so a forced exit is necessary to ensure the program terminates.
 	go func() {
 		<-ctx.Done()
-		time.Sleep(30 * time.Second)
+		time.Sleep(15 * time.Second)
 		logger.Wf(ctx, "Force to exit by timeout")
 		os.Exit(1)
 	}()
@@ -95,21 +93,17 @@ func doMain(ctx context.Context) error {
 	setEnvDefault("MGMT_LISTEN", "2022")
 
 	// For HTTPS.
-	// setEnvDefault("HTTPS_LISTEN", "2443")
-	// setEnvDefault("AUTO_SELF_SIGNED_CERTIFICATE", "on")
+	setEnvDefault("HTTPS_LISTEN", "2443")
+	setEnvDefault("AUTO_SELF_SIGNED_CERTIFICATE", "on")
 
 	// For multiple ports.
 	setEnvDefault("RTMP_PORT", "1935")
 	setEnvDefault("HTTP_PORT", "")
 
-	logger.Tf(ctx, "load .env as MGMT_PASSWORD=%vB, GO_PPROF=%v, "+
-		"SOURCE=%v, REDIS_DATABASE=%v, REDIS_HOST=%v, REDIS_PASSWORD=%vB, REDIS_PORT=%v, "+
-		"RTMP_PORT=%v, PUBLIC_URL=%v, BUILD_PATH=%v, PLATFORM_LISTEN=%v, HTTP_PORT=%v, "+
-		"MGMT_LISTEN=%v, HTTPS_LISTEN=%v",
-		envGoPprof(),
-		envSource(), envRedisDatabase(), envRedisHost(), len(envRedisPassword()), envRedisPort(),
-		envRtmpPort(), envPublicUrl(), envBuildPath(), envPlatformListen(), envHttpPort(),
-		envMgmtListen(), envHttpListen(),
+	logger.Tf(ctx, "load .env as GO_PPROF=%v, SOURCE=%v, REDIS_DATABASE=%v, REDIS_HOST=%v, REDIS_PASSWORD=%vB, REDIS_PORT=%v, "+
+		"RTMP_PORT=%v, PUBLIC_URL=%v, BUILD_PATH=%v, PLATFORM_LISTEN=%v, HTTP_PORT=%v, HTTPS_LISTEN=%v, MGMT_LISTEN=%v",
+		envGoPprof(), envSource(), envRedisDatabase(), envRedisHost(), len(envRedisPassword()), envRedisPort(),
+		envRtmpPort(), envPublicUrl(), envBuildPath(), envPlatformListen(), envHttpPort(), envHttpListen(), envMgmtListen(),
 	)
 
 	// Start the Go pprof if enabled.
@@ -128,18 +122,8 @@ func doMain(ctx context.Context) error {
 
 	// For platform, we should initOS after redis.
 	// Setup the OS for redis, which should never depends on redis.
-	if err := initOS(ctx); err != nil {
+	if err := initialize(ctx); err != nil {
 		return errors.Wrapf(err, "init os")
-	}
-
-	// We must initialize the platform after redis is ready.
-	if err := initPlatform(ctx); err != nil {
-		return errors.Wrapf(err, "init platform")
-	}
-
-	// We must initialize the mgmt after redis is ready.
-	if err := initMmgt(ctx); err != nil {
-		return errors.Wrapf(err, "init mgmt")
 	}
 
 	// Run HTTP service.
@@ -151,22 +135,8 @@ func doMain(ctx context.Context) error {
 
 	return nil
 }
-
-// Initialize the source for redis, note that we don't change the env.
-func initOS(ctx context.Context) (err error) {
-	// Request the host platform OS, whether the OS is Darwin.
-	hostPlatform := runtime.GOOS
-	// Because platform might run in docker, so we overwrite it by query from mgmt.
-	if hostPlatform == "darwin" {
-		conf.IsDarwin = true
-	}
-
-	logger.Tf(ctx, "initOS %v", conf.String())
-	return
-}
-
-// Initialize the platform before thread run.
-func initPlatform(ctx context.Context) error {
+// Initialize before thread run.
+func initialize(ctx context.Context) error {
 	// For Darwin, append the search PATH for docker.
 	// Note that we should set the PATH env, not the exec.Cmd.Env.
 	// Note that it depends on conf.IsDarwin, so it's unavailable util initOS.
@@ -178,7 +148,7 @@ func initPlatform(ctx context.Context) error {
 	// Keep in mind that the containers/data/srs-s3-bucket maybe mount by user, because user should generate
 	// and mount it if they wish to save recordings to cloud storage.
 	for _, dir := range []string{
-		"containers/data/record", "containers/data/config", "containers/data/srs-s3-bucket",
+		"containers/data/record", "containers/data/config", "containers/data/srs-s3-bucket", "containers/data/record",
 		// "containers/data/dvr", "containers/data/vod",
 		// "containers/data/upload", "containers/data/vlive", "containers/data/signals",
 		// "containers/data/lego", "containers/data/.well-known",
@@ -212,26 +182,6 @@ func initPlatform(ctx context.Context) error {
 	// 		}
 	// 	}
 	// }
-
-	return nil
-}
-
-// Initialize the platform before thread run.
-func initMmgt(ctx context.Context) error {
-	// Always create the data dir and sub dirs.
-	dataDir := filepath.Join(conf.Pwd, "containers", "data")
-	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
-		if err := os.RemoveAll(dataDir); err != nil {
-			return errors.Wrapf(err, "remove data dir %s", dataDir)
-		}
-	}
-
-	dirs := []string{"redis", "config", "record"}
-	for _, dir := range dirs {
-		if err := os.MkdirAll(filepath.Join(dataDir, dir), 0755); err != nil {
-			return errors.Wrapf(err, "create dir %s", dir)
-		}
-	}
 
 	return nil
 }
