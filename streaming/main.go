@@ -100,9 +100,9 @@ func doMain(ctx context.Context) error {
 	setEnvDefault("RTMP_PORT", "1935")
 	setEnvDefault("HTTP_PORT", "")
 
-	logger.Tf(ctx, "load .env as GO_PPROF=%v, SOURCE=%v, REDIS_DATABASE=%v, REDIS_HOST=%v, REDIS_PASSWORD=%vB, REDIS_PORT=%v, "+
+	logger.Tf(ctx, "load .env as GO_PPROF=%v, API_SECRET=%vB, SOURCE=%v, REDIS_DATABASE=%v, REDIS_HOST=%v, REDIS_PASSWORD=%vB, REDIS_PORT=%v, "+
 		"RTMP_PORT=%v, PUBLIC_URL=%v, BUILD_PATH=%v, PLATFORM_LISTEN=%v, HTTP_PORT=%v, HTTPS_LISTEN=%v, MGMT_LISTEN=%v",
-		envGoPprof(), envSource(), envRedisDatabase(), envRedisHost(), len(envRedisPassword()), envRedisPort(),
+		envGoPprof(), len(envApiSecret()), envSource(), envRedisDatabase(), envRedisHost(), len(envRedisPassword()), envRedisPort(),
 		envRtmpPort(), envPublicUrl(), envBuildPath(), envPlatformListen(), envHttpPort(), envHttpListen(), envMgmtListen(),
 	)
 

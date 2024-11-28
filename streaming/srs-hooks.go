@@ -9,10 +9,12 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/ossrs/go-oryx-lib/errors"
 	ohttp "github.com/ossrs/go-oryx-lib/http"
 	"github.com/ossrs/go-oryx-lib/logger"
+	"github.com/redis/go-redis/v9"
 )
 
 type SrsAction string
@@ -58,54 +60,35 @@ func handleHooksService(ctx context.Context, handler *http.ServeMux) error {
 				return errors.Wrapf(err, "json unmarshal %v", string(b))
 			}
 
-			// verifiedBy := "noVerify"
-			// if action == SrsActionOnPublish {
-			// 	isSecretOK := func(publish, stream, param string) bool {
-			// 		return publish == "" || strings.Contains(param, publish) || strings.Contains(stream, publish)
-			// 	}
+			if action == SrsActionOnPublish {
+				// verify
+			}
+			streamURL := streamObj.StreamURL()
+			if action == SrsActionOnPublish {
+				streamObj.Update = time.Now().Format(time.RFC3339)
 
-			// 	// Use live room secret to verify if stream name matches.
-			// 	roomPublishAuthKey := GenerateRoomPublishKey(streamObj.Stream)
-			// 	publish, err := rdb.HGet(ctx, SRS_AUTH_SECRET, roomPublishAuthKey).Result()
-			// 	verifiedBy = "room"
-			// 	if publish == "" {
-			// 		// Use global publish secret to verify
-			// 		publish, err = rdb.HGet(ctx, SRS_AUTH_SECRET, "pubSecret").Result()
-			// 		verifiedBy = "global"
-			// 	}
-			// 	if err != nil && err != redis.Nil {
-			// 		return errors.Wrapf(err, "hget %v pubSecret", SRS_AUTH_SECRET)
-			// 	}
-			// 	if !isSecretOK(publish, streamObj.Stream, streamObj.Param) {
-			// 		return errors.Errorf("invalid normal stream=%v, param=%v, action=%v", streamObj.Stream, streamObj.Param, action)
-			// 	}
-			// }
-			// streamURL := streamObj.StreamURL()
-			// if action == SrsActionOnPublish {
-			// 	streamObj.Update = time.Now().Format(time.RFC3339)
+				b, err := json.Marshal(&streamObj)
+				if err != nil {
+					return errors.Wrapf(err, "marshal json")
+				} else if err = rdb.HSet(ctx, SRS_STREAM_ACTIVE, streamURL, string(b)).Err(); err != nil && err != redis.Nil {
+					return errors.Wrapf(err, "hset %v %v %v", SRS_STREAM_ACTIVE, streamURL, string(b))
+				}
 
-			// 	b, err := json.Marshal(&streamObj)
-			// 	if err != nil {
-			// 		return errors.Wrapf(err, "marshal json")
-			// 	} else if err = rdb.HSet(ctx, SRS_STREAM_ACTIVE, streamURL, string(b)).Err(); err != nil && err != redis.Nil {
-			// 		return errors.Wrapf(err, "hset %v %v %v", SRS_STREAM_ACTIVE, streamURL, string(b))
-			// 	}
-
-			// 	if err := rdb.HIncrBy(ctx, SRS_STAT_COUNTER, "publish", 1).Err(); err != nil && err != redis.Nil {
-			// 		return errors.Wrapf(err, "hincrby %v publish 1", SRS_STAT_COUNTER)
-			// 	}
-			// } else if action == SrsActionOnUnpublish {
-			// 	if err := rdb.HDel(ctx, SRS_STREAM_ACTIVE, streamURL).Err(); err != nil && err != redis.Nil {
-			// 		return errors.Wrapf(err, "hset %v %v", SRS_STREAM_ACTIVE, streamURL)
-			// 	}
-			// } else if action == "on_play" {
-			// 	if err := rdb.HIncrBy(ctx, SRS_STAT_COUNTER, "play", 1).Err(); err != nil && err != redis.Nil {
-			// 		return errors.Wrapf(err, "hincrby %v play 1", SRS_STAT_COUNTER)
-			// 	}
-			// }
+				if err := rdb.HIncrBy(ctx, SRS_STAT_COUNTER, "publish", 1).Err(); err != nil && err != redis.Nil {
+					return errors.Wrapf(err, "hincrby %v publish 1", SRS_STAT_COUNTER)
+				}
+			} else if action == SrsActionOnUnpublish {
+				if err := rdb.HDel(ctx, SRS_STREAM_ACTIVE, streamURL).Err(); err != nil && err != redis.Nil {
+					return errors.Wrapf(err, "hset %v %v", SRS_STREAM_ACTIVE, streamURL)
+				}
+			} else if action == "on_play" {
+				if err := rdb.HIncrBy(ctx, SRS_STAT_COUNTER, "play", 1).Err(); err != nil && err != redis.Nil {
+					return errors.Wrapf(err, "hincrby %v play 1", SRS_STAT_COUNTER)
+				}
+			}
 
 			ohttp.WriteData(ctx, w, r, nil)
-			logger.Tf(ctx, "srs hooks ok, action=%v, verifiedBy=%v, %v, %v",
+			logger.Tf(ctx, "srs hooks ok, action=%v, %v",
 				action, streamObj.String())
 			return nil
 		}(); err != nil {
