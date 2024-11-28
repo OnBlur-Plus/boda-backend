@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -106,8 +105,8 @@ func handleHooksService(ctx context.Context, handler *http.ServeMux) error {
 			// }
 
 			ohttp.WriteData(ctx, w, r, nil)
-			// logger.Tf(ctx, "srs hooks ok, action=%v, verifiedBy=%v, %v, %v",
-			// 	action, verifiedBy, streamObj.String(), requestBody)
+			logger.Tf(ctx, "srs hooks ok, action=%v, verifiedBy=%v, %v, %v",
+				action, streamObj.String())
 			return nil
 		}(); err != nil {
 			ohttp.WriteError(ctx, w, r, err)
@@ -127,7 +126,7 @@ func handleOnHls(ctx context.Context, handler *http.ServeMux) error {
 	logger.Tf(ctx, "Handle %v", ep)
 	handler.HandleFunc(ep, func(w http.ResponseWriter, r *http.Request) {
 		if err := func() error {
-			b, err := ioutil.ReadAll(r.Body)
+			b, err := io.ReadAll(r.Body)
 			if err != nil {
 				return errors.Wrapf(err, "read body")
 			}
@@ -140,6 +139,7 @@ func handleOnHls(ctx context.Context, handler *http.ServeMux) error {
 				return errors.Errorf("invalid action=%v", msg.Action)
 			}
 			if _, err := os.Stat(msg.File); err != nil {
+				logger.Ef(ctx, conf.Pwd)
 				return errors.Wrapf(err, "invalid ts file %v", msg.File)
 			}
 			logger.Tf(ctx, "on_hls ok, %v", string(b))

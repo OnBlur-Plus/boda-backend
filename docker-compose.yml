@@ -12,7 +12,7 @@ services:
     volumes:
       - ./streaming/containers/data/config/:/usr/local/srs/containers/data/config/
       - ./streaming/containers/conf/srs.release-mac.conf:/usr/local/srs/conf/docker.conf
-      - ./streaming/containers/objs/nginx:/usr/local/srs/objs/nginx
+      - ./streaming/containers/objs/nginx:/usr/local/srs/containers/objs/nginx
     ports:
       - 1935:1935 # rtmp
       - 1985:1985 #
