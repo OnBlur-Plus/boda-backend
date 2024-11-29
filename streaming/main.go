@@ -126,6 +126,12 @@ func doMain(ctx context.Context) error {
 		return errors.Wrapf(err, "init os")
 	}
 
+	detectWorker = NewDetectWorker()
+	defer detectWorker.Close()
+	if err := detectWorker.Start(ctx); err != nil {
+		return errors.Wrapf(err, "start detect worker")
+	}
+
 	// Run HTTP service.
 	httpService := NewHTTPService()
 	defer httpService.Close()
@@ -148,7 +154,7 @@ func initialize(ctx context.Context) error {
 	// Keep in mind that the containers/data/srs-s3-bucket maybe mount by user, because user should generate
 	// and mount it if they wish to save recordings to cloud storage.
 	for _, dir := range []string{
-		"containers/data/record", "containers/data/config", "containers/data/srs-s3-bucket", "containers/data/record",
+		"containers/data/record", "containers/data/config", "containers/data/srs-s3-bucket", "containers/data/detect", "containers/data/process",
 		// "containers/data/dvr", "containers/data/vod",
 		// "containers/data/upload", "containers/data/vlive", "containers/data/signals",
 		// "containers/data/lego", "containers/data/.well-known",

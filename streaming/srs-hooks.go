@@ -128,14 +128,10 @@ func handleOnHls(ctx context.Context, handler *http.ServeMux) error {
 			logger.Tf(ctx, "on_hls ok, %v", string(b))
 
 			// Handle TS file by Record task if enabled.
-			// if recordAll, err := rdb.HGet(ctx, SRS_RECORD_PATTERNS, "all").Result(); err != nil && err != redis.Nil {
-			// 	return errors.Wrapf(err, "hget %v all", SRS_RECORD_PATTERNS)
-			// } else if recordAll == "true" {
-			// 	if err = recordWorker.OnHlsTsMessage(ctx, &msg); err != nil {
-			// 		return errors.Wrapf(err, "feed %v", msg.String())
-			// 	}
-			// 	logger.Tf(ctx, "record %v", msg.String())
-			// }
+			if err = detectWorker.OnHlsTsMessage(ctx, &msg); err != nil {
+				return errors.Wrapf(err, "feed %v", msg.String())
+			}
+			logger.Tf(ctx, "record %v", msg.String())
 
 			// Handle TS file by DVR task if enabled.
 			// if dvrAll, err := rdb.HGet(ctx, SRS_DVR_PATTERNS, "all").Result(); err != nil && err != redis.Nil {

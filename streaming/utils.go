@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"math"
 	"net/http"
 	"net/http/httputil"
@@ -60,6 +59,8 @@ const (
 	SRS_SYS_LIMITS      = "SRS_SYS_LIMITS"
 	
 	RECORD_M3U8_ARTIFACT = "RECORD_M3U8_ARTIFACT"
+	PROCESS_TASK = "PROCESS_TASK"
+	PROCESS_STREAM_WORKING = "PROCESS_STREAM_WORKING"
 )
 
 // GenerateRoomPublishKey to build the redis hashset key from room stream name.
@@ -192,25 +193,6 @@ func buildLiveM3u8ForLocal(
 			tsURL = fmt.Sprintf("%v%v.ts", prefix, file.TsID)
 		}
 		m3u8 = append(m3u8, tsURL)
-	}
-
-	contentType = "application/vnd.apple.mpegurl"
-	m3u8Body = strings.Join(m3u8, "\n")
-	return
-}
-
-// buildLiveM3u8ForVariantCC go generate variant m3u8 with CC(Closed Caption).
-func buildLiveM3u8ForVariantCC(
-	ctx context.Context, bitrate int64, lang, stream, subtitles string,
-) (contentType, m3u8Body string, err error) {
-	m3u8 := []string{
-		"#EXTM3U",
-		fmt.Sprintf(
-			`#EXT-X-MEDIA:TYPE=SUBTITLES,GROUP-ID="subs",NAME="Subtitle-%v",LANGUAGE="%v",DEFAULT=YES,AUTOSELECT=YES,FORCED=NO,URI="%v"`,
-			strings.ToUpper(lang), lang, subtitles,
-		),
-		fmt.Sprintf(`#EXT-X-STREAM-INF:BANDWIDTH=%v,SUBTITLES="subs"`, bitrate),
-		stream,
 	}
 
 	contentType = "application/vnd.apple.mpegurl"
@@ -352,7 +334,7 @@ func (v *SrsStream) IsRTC() bool {
 
 // ParseBody read the body from r, and unmarshal JSON to v.
 func ParseBody(ctx context.Context, r io.ReadCloser, v interface{}) error {
-	b, err := ioutil.ReadAll(r)
+	b, err := io.ReadAll(r)
 	if err != nil {
 		return errors.Wrapf(err, "read body")
 	}
@@ -412,4 +394,59 @@ func httpCreateProxy(targetURL string) (*httputil.ReverseProxy, error) {
 	}
 
 	return proxy, nil
+}
+
+// FFprobeFormat is the format object in ffprobe response.
+type FFprobeFormat struct {
+	// The start time in seconds.
+	Starttime string `json:"start_time"`
+	// The duration in seconds.
+	Duration string `json:"duration"`
+	// The bitrate in bps.
+	Bitrate string `json:"bit_rate"`
+	// The number of streams in file. Note that there might be audio, video, and data stream,
+	// so if the streams is 2, it may indicate audio+video, video+data, or audio+data.
+	Streams int32 `json:"nb_streams"`
+	// The probe score, which indicates the confidence of the format detection.
+	Score int32 `json:"probe_score"`
+	// Whether has video stream.
+	HasVideo bool `json:"has_video"`
+	// Whether has audio stream.
+	HasAudio bool `json:"has_audio"`
+}
+
+func (v *FFprobeFormat) String() string {
+	return fmt.Sprintf("starttime=%v, duration=%v, bitrate=%v, streams=%v, score=%v, video=%v, audio=%v",
+		v.Starttime, v.Duration, v.Bitrate, v.Streams, v.Score, v.HasVideo, v.HasAudio,
+	)
+}
+
+// FFprobeVideo is the video object in ffprobe response.
+type FFprobeVideo struct {
+	// The codec type, should be video.
+	CodecType string `json:"codec_type"`
+	// The codec name, for example, h264, h265, vp6f, vp8, vp9, av1, or avs3.
+	CodecName string `json:"codec_name"`
+	// The codec profile, for example, High, Main, Baseline, or Constrained Baseline.
+	Profile string `json:"profile"`
+	// The width of video.
+	Width int32 `json:"width"`
+	// The height of video.
+	Height int32 `json:"height"`
+	// The pixel format, for example, yuv420p, yuv422p, yuv444p, yuv410p, yuv411p, yuvj420p,
+	PixFormat string `json:"pix_fmt"`
+	// The level of video.
+	Level int32 `json:"level"`
+	// The bitrate in bps.
+	Bitrate string `json:"bit_rate"`
+	// The start time in seconds.
+	Starttime string `json:"start_time"`
+	// The duration in seconds.
+	Duration string `json:"duration"`
+}
+
+func (v *FFprobeVideo) String() string {
+	return fmt.Sprintf("codec=%v, profile=%v, width=%v, height=%v, fmt=%v, level=%v, bitrate=%v",
+		v.CodecName, v.Profile, v.Width, v.Height, v.PixFormat, v.Level, v.Bitrate,
+	)
 }
