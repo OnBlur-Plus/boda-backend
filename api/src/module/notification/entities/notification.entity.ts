@@ -27,7 +27,7 @@ export class Notification {
   isSent: boolean;
 
   @Column({ name: 'readed_at', nullable: true })
-  readedAt: Date;
+  readedAt: Date | null;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

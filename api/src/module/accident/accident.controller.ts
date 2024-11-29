@@ -14,9 +14,9 @@ export class AccidentController {
     return await this.accidentService.getAccidents(pageNum, pageSize);
   }
 
-  @Get('count')
-  async getCountOfAccidents(@Query('date', DatePipe) date: string) {
-    return await this.accidentService.getCountOfAccidents(new Date(date));
+  @Get('date')
+  async getAccidentsByDate(@Query('date', DatePipe) date: string) {
+    return await this.accidentService.getAccidentsByDate(new Date(date));
   }
 
   @Get('stream/:streamKey')
@@ -26,6 +26,6 @@ export class AccidentController {
 
   @Get('detail/:id')
   async getAccident(@Param('id', ParseIntPipe) id: number) {
-    return await this.accidentService.getAccident(id);
+    return await this.accidentService.getAccidentWithStream(id);
   }
 }

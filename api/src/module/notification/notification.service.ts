@@ -1,4 +1,4 @@
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, IsNull, Repository } from 'typeorm';
 import FirebaseAdmin from 'firebase-admin';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -20,11 +20,14 @@ export class NotificationService {
   }
 
   async getAllNotifications(userId: number, pageNum: number, pageSize: number) {
-    return await this.notificationRepository.find({
+    const [notifications, count] = await this.notificationRepository.findAndCount({
       where: { user: { id: userId } },
       skip: (pageNum - 1) * pageSize,
       take: pageSize,
+      relations: ['notificationContent'],
     });
+
+    return { pageNum, pageSize, hasNext: count > pageNum * pageSize, notifications };
   }
 
   async registerDeviceToken(userId: number, { deviceToken }: RegisterDeviceTokenDto) {
@@ -57,7 +60,7 @@ export class NotificationService {
 
   async readAllNotifications(userId: number, date: Date) {
     const { affected } = await this.notificationRepository.update(
-      { user: { id: userId }, readedAt: null },
+      { user: { id: userId }, readedAt: IsNull() },
       { readedAt: date },
     );
 

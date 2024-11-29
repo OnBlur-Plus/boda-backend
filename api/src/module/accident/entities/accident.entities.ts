@@ -10,7 +10,11 @@ import {
 } from 'typeorm';
 
 export enum AccidentType {
-  FIRE = 'FIRE',
+  NON_SAFETY_VEST = 'NON_SAFETY_VEST',
+  NON_SAFETY_HELMET = 'NON_SAFETY_HELMET',
+  FALL = 'FALL',
+  USE_PHONE_WHILE_WORKING = 'USE_PHONE_WHILE_WORKING',
+  SOS_REQUEST = 'SOS_REQUEST',
 }
 
 export enum AccidentLevel {

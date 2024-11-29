@@ -20,13 +20,16 @@ export class NotificationContent {
   @Column()
   body: string;
 
-  @JoinColumn({ name: 'accident_id' })
-  @ManyToOne(() => Accident, { cascade: true })
-  accident: Accident;
+  @Column({ name: 'accident_id' })
+  accidentId: number;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @JoinColumn({ name: 'accident_id' })
+  @ManyToOne(() => Accident, { cascade: true })
+  accident: Accident;
 }
