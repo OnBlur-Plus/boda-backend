@@ -190,6 +190,9 @@ func handleHTTPService(ctx context.Context, handler *http.ServeMux) error {
 	if err := handleHooksService(ctx, handler); err != nil {
 		return errors.Wrapf(err, "handle hooks")
 	}
+	if err := detectWorker.Handle(ctx, handler); err != nil {
+		return errors.Wrapf(err, "handle detects")
+	}
 
 	var ep string
 
