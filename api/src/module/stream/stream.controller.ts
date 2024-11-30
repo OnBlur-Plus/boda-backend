@@ -1,6 +1,5 @@
-import { Controller, Get, Post, UploadedFile, UseInterceptors } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Post } from '@nestjs/common';
 import { StreamService } from './stream.service';
-import { FileInterceptor } from '@nestjs/platform-express';
 import { IsPublic } from '../auth/auth.guard';
 
 @Controller('stream')
@@ -19,16 +18,19 @@ export class StreamController {
 
   @Post('test')
   @IsPublic()
-  @UseInterceptors(FileInterceptor('file'))
-  async getBoundingBox(@UploadedFile() file: Express.Multer.File) {
-    console.log(file);
+  async uploadFile(@Body() body: { file: string }) {
+    const { file } = body;
+
+    if (!file) {
+      throw new BadRequestException('File data or name is missing');
+    }
 
     return {
       imageId: 'test-id',
-      x1: 0.1,
-      y1: 0.1,
-      x2: 0.2,
-      y2: 0.2,
+      x: 0.1,
+      y: 0.1,
+      width: 0.2,
+      height: 0.2,
       label: 0,
       score: 0.2,
     };
