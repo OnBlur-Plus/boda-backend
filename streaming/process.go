@@ -776,18 +776,14 @@ func (v *ProcessTask) DriveDetectQueue(ctx context.Context) error {
 	}
 
 	// TODO: FIXME: We should generate a set of images and use the best one.
-	tmpFile := fmt.Sprintf("%v.tmp.ts", segment.TsFile.File)
 	args := []string {
 		"-i", segment.TsFile.File,
 		"-c", "copy",
 		"-metadata", segment.BoundingBox.String(),
-		"-y", tmpFile,
+		"-y", segment.TsFile.File,
 	}
 	if err := exec.CommandContext(ctx, "ffmpeg", args...).Run(); err != nil {
-		return errors.Wrapf(err, "add metadata %v", args)
-	}
-	if err := exec.CommandContext(ctx, "mv", tmpFile, segment.TsFile.File).Run(); err != nil {
-		return errors.Wrapf(err, "add metadata %v", args)
+		return errors.Wrapf(err, "transcode %v", args)
 	}
 
 	// Discover the starttime of the segment.

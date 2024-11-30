@@ -44,6 +44,7 @@ services:
       - 8080:8080
       - 8000:8000/udp
       - 10080:10080/udp
+    # network_mode: host
   redis:
     image: redis:5.0
     container_name: redis
