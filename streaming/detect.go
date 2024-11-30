@@ -28,15 +28,22 @@ type DetectWorker struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
+	// Use async goroutine to process on_hls messages.
+	msgs chan *SrsOnHlsMessage
+
 	// Got message from SRS, a new TS segment file is generated.
-	msgs chan *SrsOnHlsObject
+	tsfiles chan *SrsOnHlsObject
+
 	// The streams we're detecting, key is m3u8 URL in string, value is m3u8 object *DetectM3u8Stream.
 	workers sync.Map
 }
 
 func NewDetectWorker() *DetectWorker {
 	return &DetectWorker{
-		msgs: make(chan *SrsOnHlsObject, 1024),
+		// Message on_hls.
+		msgs: make(chan *SrsOnHlsMessage, 1024),
+		// TS files.
+		tsfiles: make(chan *SrsOnHlsObject, 1024),
 	}
 }
 
@@ -79,8 +86,16 @@ func (v *DetectWorker) Handle(ctx context.Context, handler *http.ServeMux) error
 
 	return nil
 }
-
 func (v *DetectWorker) OnHlsTsMessage(ctx context.Context, msg *SrsOnHlsMessage) error {
+	select {
+	case <-ctx.Done():
+	case v.msgs <- msg:
+	}
+
+	return nil
+}
+
+func (v *DetectWorker) OnHlsTsMessageImpl(ctx context.Context, msg *SrsOnHlsMessage) error {
 	// Copy the ts file to temporary cache dir.
 	tsid := uuid.NewString()
 	tsfile := path.Join("detect", fmt.Sprintf("%v.ts", tsid))
@@ -111,7 +126,7 @@ func (v *DetectWorker) OnHlsTsMessage(ctx context.Context, msg *SrsOnHlsMessage)
 	go func() {
 		select {
 		case <-ctx.Done():
-		case v.msgs <- &SrsOnHlsObject{Msg: msg, TsFile: tsFile}:
+		case v.tsfiles <- &SrsOnHlsObject{Msg: msg, TsFile: tsFile}:
 		}
 	}()
 	return nil
@@ -176,6 +191,21 @@ func (v *DetectWorker) Start(ctx context.Context) error {
 
 		return nil
 	}
+		// Consume all on_hls messages.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+	
+		for ctx.Err() == nil {
+			select {
+			case <-ctx.Done():
+			case msg := <-v.msgs:
+				if err := v.OnHlsTsMessageImpl(ctx, msg); err != nil {
+					logger.Wf(ctx, "transcript: handle on hls message %v err %+v", msg.String(), err)
+				}
+			}
+		}
+	}()
 
 	// Process all messages about HLS ts segments.
 	wg.Add(1)
@@ -186,9 +216,9 @@ func (v *DetectWorker) Start(ctx context.Context) error {
 			select {
 			case <-ctx.Done():
 				return
-			case msg := <-v.msgs:
-				if err := createWorker(ctx, msg); err != nil {
-					logger.Wf(ctx, "ignore msg %v ts %v err %+v", msg.Msg.String(), msg.TsFile.String(), err)
+			case tsflie := <-v.tsfiles:
+				if err := createWorker(ctx, tsflie); err != nil {
+					logger.Wf(ctx, "ignore msg %v ts %v err %+v", tsflie.Msg.String(), tsflie.TsFile.String(), err)
 				}
 			}
 		}

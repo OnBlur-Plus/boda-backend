@@ -154,7 +154,7 @@ func InitRdb() error {
 
 // buildLiveM3u8ForLocal go generate dynamic m3u8.
 func buildLiveM3u8ForLocal(
-	ctx context.Context, tsFiles []*TsFile, useKey bool, prefix string,
+	ctx context.Context, tsFiles []*TsFile, useKey bool, prefix string, metadata []string,
 ) (
 	contentType, m3u8Body string, duration float64, err error,
 ) {
@@ -183,6 +183,7 @@ func buildLiveM3u8ForLocal(
 				m3u8 = append(m3u8, "#EXT-X-DISCONTINUITY")
 			}
 		}
+		m3u8 = append(m3u8, fmt.Sprintf("#BOUNDING-BOX:%v", metadata[index]))
 
 		m3u8 = append(m3u8, fmt.Sprintf("#EXTINF:%.2f, no desc", file.Duration))
 
