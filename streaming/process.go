@@ -383,11 +383,10 @@ type ProcessDetectResult struct {
 }
 
 func (v ProcessDetectResult) String() string {
-	return fmt.Sprintf("label=%v, x=%v, y=%v, width=%v, height=%v, score=%v, segments=%v",
+	return fmt.Sprintf("label=%v,x=%v,y=%v,width=%v,height=%v,score=%v,segments=%v",
 		v.Label, v.X, v.Y, v.Width, v.Height, v.Score, len(v.Segments), 
 	)
 }
-
 type ProcessSegment struct {
 	// The SRS callback message msg.
 	Msg *SrsOnHlsMessage `json:"msg,omitempty"`
@@ -774,6 +773,21 @@ func (v *ProcessTask) DriveDetectQueue(ctx context.Context) error {
 	
 	if err != nil {
 		return errors.Wrapf(err, "post image %v (%v)", segment.ImageFile.File, len(imageData))
+	}
+
+	// TODO: FIXME: We should generate a set of images and use the best one.
+	tmpFile := fmt.Sprintf("%v.tmp.ts", segment.TsFile.File)
+	args := []string {
+		"-i", segment.TsFile.File,
+		"-c", "copy",
+		"-metadata", segment.BoundingBox.String(),
+		"-y", tmpFile,
+	}
+	if err := exec.CommandContext(ctx, "ffmpeg", args...).Run(); err != nil {
+		return errors.Wrapf(err, "add metadata %v", args)
+	}
+	if err := exec.CommandContext(ctx, "mv", tmpFile, segment.TsFile.File).Run(); err != nil {
+		return errors.Wrapf(err, "add metadata %v", args)
 	}
 
 	// Discover the starttime of the segment.
