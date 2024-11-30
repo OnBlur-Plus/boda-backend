@@ -1,5 +1,5 @@
 import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
-import { AccidentType } from '../entities/accident.entities';
+import { AccidentType } from '../entities/accident.entity';
 
 export class StartAccidentDto {
   @IsEnum(AccidentType)

@@ -7,7 +7,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Accident } from 'src/module/accident/entities/accident.entities';
+import { Accident } from 'src/module/accident/entities/accident.entity';
 
 @Entity()
 export class NotificationContent {

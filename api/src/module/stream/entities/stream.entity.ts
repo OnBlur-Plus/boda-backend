@@ -13,7 +13,7 @@ export class Stream {
   @Column()
   title: string;
 
-  @Column({ name: 'sub_title', nullable: true })
+  @Column({ name: 'sub_title' })
   subTitle: string;
 
   @Column({ name: 'thumbnail_url', nullable: true })

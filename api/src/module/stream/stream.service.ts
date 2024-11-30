@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Stream, StreamStatus } from 'src/module/stream/entities/stream.entity';
 import { CreateStreamDto } from './dto/create-stream.dto';
 import { UpdateStreamDto } from './dto/update-stream.dto';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class StreamService {
@@ -34,7 +35,12 @@ export class StreamService {
   }
 
   async createStream(createStreamDto: CreateStreamDto) {
-    return await this.streamRepository.save(createStreamDto);
+    const stream = this.streamRepository.create({
+      ...createStreamDto,
+      status: StreamStatus.IDLE,
+      streamKey: uuidv4(),
+    });
+    return await this.streamRepository.save(stream);
   }
 
   async updateStream(streamKey: string, updateStreamDto: UpdateStreamDto) {
@@ -49,7 +55,7 @@ export class StreamService {
     const stream = await this.streamRepository.findOne({ where: { streamKey } });
 
     if (!stream) {
-      return new NotFoundException('No Stream');
+      throw new NotFoundException('No Stream');
     }
 
     return await this.streamRepository.update(

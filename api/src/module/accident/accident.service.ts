@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Accident } from './entities/accident.entities';
+import { Accident } from './entities/accident.entity';
 import { Between, Repository } from 'typeorm';
 import { UpdateAccidentDto } from './dto/update-accident.dto';
 import { StartAccidentDto } from 'src/module/accident/dto/start-accident.dto';

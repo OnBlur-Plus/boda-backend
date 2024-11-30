@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
@@ -39,6 +40,34 @@ const (
 )
 
 func handleHooksService(ctx context.Context, handler *http.ServeMux) error {
+	pf := func(url string, requestBody interface{}) error {
+		b, err := json.Marshal(requestBody)
+		if err != nil {
+			return errors.Wrapf(err, "marshal req")
+		}
+
+		req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(b))
+		if err != nil {
+			return errors.Wrapf(err, "new request")
+		}
+	
+		req.Header.Set("Content-Type", "application/json")
+	
+		var res *http.Response
+		res, err = http.DefaultClient.Do(req)
+		if err != nil {
+			return errors.Wrapf(err, "http post")
+		}
+		defer res.Body.Close()
+	
+		if res.StatusCode != http.StatusCreated {
+			return errors.Errorf("response status %v", res.StatusCode)
+		}
+	
+		return nil
+	}
+
+
 	ep := "/hooks/srs/verify"
 	logger.Tf(ctx, "Handle %v", ep)
 	handler.HandleFunc(ep, func(w http.ResponseWriter, r *http.Request) {
@@ -61,7 +90,13 @@ func handleHooksService(ctx context.Context, handler *http.ServeMux) error {
 			}
 
 			if action == SrsActionOnPublish {
-				// verify
+				if err := pf("http://127.0.0.1:5000/stream/verify", &struct {
+					StreamKey string `json:"streamKey"`
+				}{
+					StreamKey: streamObj.Stream,
+				}); err != nil {
+					return errors.Wrapf(err, "verify with %s", streamObj.Stream)
+				}
 			}
 			streamURL := streamObj.StreamURL()
 			if action == SrsActionOnPublish {
@@ -80,6 +115,14 @@ func handleHooksService(ctx context.Context, handler *http.ServeMux) error {
 			} else if action == SrsActionOnUnpublish {
 				if err := rdb.HDel(ctx, SRS_STREAM_ACTIVE, streamURL).Err(); err != nil && err != redis.Nil {
 					return errors.Wrapf(err, "hset %v %v", SRS_STREAM_ACTIVE, streamURL)
+				}
+
+				if err := pf("http://127.0.0.1:5000/stream/end", &struct {
+					StreamKey string `json:"streamKey"`
+				}{
+					StreamKey: streamObj.Stream,
+				}); err != nil {
+					return errors.Wrapf(err, "unpublish with %s", streamObj.Stream)
 				}
 			} else if action == "on_play" {
 				if err := rdb.HIncrBy(ctx, SRS_STAT_COUNTER, "play", 1).Err(); err != nil && err != redis.Nil {

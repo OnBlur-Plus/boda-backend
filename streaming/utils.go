@@ -364,9 +364,6 @@ func httpAllowCORS(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Methods", "*")
 	// See https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Expose-Headers
 	w.Header().Set("Access-Control-Expose-Headers", "*")
-	// https://stackoverflow.com/a/24689738/17679565
-	// https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Access-Control-Allow-Credentials
-	w.Header().Set("Access-Control-Allow-Credentials", "true")
 }
 
 // httpCreateProxy create a reverse proxy for target URL.

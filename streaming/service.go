@@ -227,6 +227,12 @@ func handleHTTPService(ctx context.Context, handler *http.ServeMux) error {
 			return
 		}
 
+		if strings.HasSuffix(r.URL.Path, ".jpg") || strings.HasSuffix(r.URL.Path, ".png") {
+			w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%v", 600))
+			hlsFileServer.ServeHTTP(w, r)
+			return
+		}
+
 		// Always directly serve the HLS ts files.
 		if fastCache.HLSHighPerformance && strings.HasSuffix(r.URL.Path, ".m3u8") {
 			var m3u8ExpireInSeconds int = 10

@@ -25,11 +25,7 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-// 0-9 (0,3,4)
-// The total segments in overlay HLS.
-const maxFinishSegments = 9
-
-type ProcessWorker struct {
+type AccidentWorker struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
 
@@ -37,41 +33,38 @@ type ProcessWorker struct {
 	task *ProcessTask
 
 	// Use async goroutine to process on_hls messages.
-	msgs chan *SrsOnHlsMessage
-
-	// Got message from SRS, a new TS segment file is generated.
-	tsfiles chan *SrsOnHlsObject
+	msgs chan *ProcessDetectResult
 
 	// The worker which owns this object.
-	detectWorker *DetectWorker
-	UUID string `json:"uuid"`
+	processWorker *ProcessWorker
+	Category string `category_id:"uuid"`
 	Stream string `json:"stream"`
 }
 
-func NewProcessWorker(d *DetectWorker) *ProcessWorker {
-	v := &ProcessWorker{
+func NewAccidentWorker(p *ProcessWorker) *AccidentWorker {
+	v := &AccidentWorker{
 		// Message on_hls.
-		msgs: make(chan *SrsOnHlsMessage, 1024),
+		msgs: make(chan *ProcessDetectResult, 1024),
 		// TS files.
 		tsfiles: make(chan *SrsOnHlsObject, 1024),
-		detectWorker: d,
+		processWorker: p,
 	}
 	v.task = NewProcessTask()
-	v.task.processWorker = v
+	v.task.AccidentWorker = v
 	return v
 }
 
-func (v *ProcessWorker) Initialize(d *DetectWorker) error {
+func (v *AccidentWorker) Initialize(d *DetectWorker) error {
 	v.msgs = make(chan *SrsOnHlsMessage, 1024)
 		// TS files.
 	v.tsfiles = make(chan *SrsOnHlsObject, 1024)
 	v.detectWorker = d
 	v.task = NewProcessTask()
-	v.task.processWorker = v
+	v.task.AccidentWorker = v
 
 	return nil
 }
-func StartWorker(worker *ProcessWorker, ctx context.Context) (*ProcessWorker, error) {
+func StartWorker(worker *AccidentWorker, ctx context.Context) (*AccidentWorker, error) {
 	dir := fmt.Sprintf("process/%v", worker.Stream)
 
 	if _, err := os.Stat(dir); err != nil && os.IsNotExist(err) {
@@ -84,7 +77,7 @@ func StartWorker(worker *ProcessWorker, ctx context.Context) (*ProcessWorker, er
 	return worker, nil
 }
 
-func (v *ProcessWorker)	hlsM3u8Handler(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (v *AccidentWorker)	hlsM3u8Handler(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	// Format is /webvtt/:uuid.m3u8
 	filename := r.URL.Path[len("/detect/hls/")+len(v.Stream)+1:]
 	// Format is :uuid.m3u8
@@ -117,7 +110,7 @@ func (v *ProcessWorker)	hlsM3u8Handler(ctx context.Context, w http.ResponseWrite
 	return nil
 }
 
-func (v *ProcessWorker) hlsTsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+func (v *AccidentWorker) hlsTsHandler(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
 	// Format is :uuid.ts
 	filename := r.URL.Path[len("/detect/hls/")+len(v.Stream)+1:]
 	fileBase := path.Base(filename)
@@ -143,7 +136,7 @@ func (v *ProcessWorker) hlsTsHandler(ctx context.Context, w http.ResponseWriter,
 	return nil
 }
 
-func (v *ProcessWorker) OnHlsTsMessage(ctx context.Context, msg *SrsOnHlsMessage) error {
+func (v *AccidentWorker) OnHlsTsMessage(ctx context.Context, msg *SrsOnHlsMessage) error {
 	select {
 	case <-ctx.Done():
 	case v.msgs <- msg:
@@ -151,7 +144,7 @@ func (v *ProcessWorker) OnHlsTsMessage(ctx context.Context, msg *SrsOnHlsMessage
 
 	return nil
 }
-func (v *ProcessWorker) OnHlsTsObject(ctx context.Context, msg *SrsOnHlsObject) error {
+func (v *AccidentWorker) OnHlsTsObject(ctx context.Context, msg *SrsOnHlsObject) error {
 	select {
 	case <-ctx.Done():
 	case v.tsfiles <- msg:
@@ -163,7 +156,7 @@ func (v *ProcessWorker) OnHlsTsObject(ctx context.Context, msg *SrsOnHlsObject) 
 // task에 있는 hlstsmessage 처리
 // ts파일을 임시 파일로 복사함.
 // v.tsfiles에 notify
-func (v *ProcessWorker) OnHlsTsMessageImpl(ctx context.Context, msg *SrsOnHlsMessage) error {
+func (v *AccidentWorker) OnHlsTsMessageImpl(ctx context.Context, msg *SrsOnHlsMessage) error {
 	// Ignore if not natch the task config.
 	if !v.task.match(msg) {
 		return nil
@@ -204,7 +197,7 @@ func (v *ProcessWorker) OnHlsTsMessageImpl(ctx context.Context, msg *SrsOnHlsMes
 	return nil
 }
 
-func (v *ProcessWorker) Close() error {
+func (v *AccidentWorker) Close() error {
 	if v.cancel != nil {
 		v.cancel()
 	}
@@ -213,7 +206,7 @@ func (v *ProcessWorker) Close() error {
 	return nil
 }
 
-func (v *ProcessWorker) Start(ctx context.Context) error {
+func (v *AccidentWorker) Start(ctx context.Context) error {
 	wg := &v.wg
 
 	ctx, cancel := context.WithCancel(ctx)
@@ -364,23 +357,6 @@ func (v *ProcessWorker) Start(ctx context.Context) error {
 	return nil
 }
 
-type ProcessDetectSegment struct {
-	ID    int     `json:"id,omitempty"`
-	Seek  int     `json:"seek,omitempty"`
-	Start float64 `json:"start,omitempty"`
-	End   float64 `json:"end,omitempty"`
-	Text  string  `json:"text,omitempty"`
-}
-
-type ProcessDetectResult struct {
-	BBox []float64  `json:"bbox,omitempty"`
-	Score float64 `json:"score,omitempty"`
-	Category float64 `json:"category_id,omitempty"`
-	ImageId string `json:"image_id,omitempty"`
-	// The segments of the text.
-	Segments []ProcessDetectSegment `json:"segments,omitempty"`
-}
-
 func (v ProcessDetectResult) String() string {
 	return fmt.Sprintf("label=%v,x=%v,y=%v,width=%v,height=%v,score=%v,segments=%v",
 		v.Category, v.BBox, v.Score, len(v.Segments), 
@@ -452,7 +428,7 @@ func (v *ProcessSegment) Dispose() error {
 	return nil
 }
 
-type ProcessQueue struct {
+type AccidentQueue struct {
 	// The process segments in the queue.
 	Segments []*ProcessSegment `json:"segments,omitempty"`
 
@@ -460,29 +436,29 @@ type ProcessQueue struct {
 	lock sync.Mutex
 }
 
-func NewProcessQueue() *ProcessQueue {
-	return &ProcessQueue{}
+func NewAccidentQueue() *AccidentQueue {
+	return &AccidentQueue{}
 }
 
-func (v *ProcessQueue) String() string {
+func (v *AccidentQueue) String() string {
 	return fmt.Sprintf("segments=%v", len(v.Segments))
 }
 
-func (v *ProcessQueue) count() int {
+func (v *AccidentQueue) count() int {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 
 	return len(v.Segments)
 }
 
-func (v *ProcessQueue) enqueue(segment *ProcessSegment) {
+func (v *AccidentQueue) enqueue(segment *ProcessSegment) {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 
 	v.Segments = append(v.Segments, segment)
 }
 
-func (v *ProcessQueue) first() *ProcessSegment {
+func (v *AccidentQueue) first() *ProcessSegment {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 
@@ -493,7 +469,7 @@ func (v *ProcessQueue) first() *ProcessSegment {
 	return v.Segments[0]
 }
 
-func (v *ProcessQueue) dequeue(segment *ProcessSegment) {
+func (v *AccidentQueue) dequeue(segment *ProcessSegment) {
 	v.lock.Lock()
 	defer v.lock.Unlock()
 
@@ -505,7 +481,7 @@ func (v *ProcessQueue) dequeue(segment *ProcessSegment) {
 	}
 }
 
-func (v *ProcessQueue) reset(ctx context.Context) error {
+func (v *AccidentQueue) reset(ctx context.Context) error {
 	var segments []*ProcessSegment
 
 	func() {
@@ -535,17 +511,17 @@ type ProcessTask struct {
 	// The live queue for the current task. HLS TS segments are copied to the process
 	// directory, then a segment is created and added to the live queue for the process
 	// task to process, to convert to pure audio mp4 file.
-	LiveQueue *ProcessQueue `json:"live,omitempty"`
+	LiveQueue *AccidentQueue `json:"live,omitempty"`
 	// The ASR (Automatic Speech Recognition) queue for the current task. When a pure audio
 	// MP4 file is generated, the segment is added to the ASR queue, which then requests the
 	// AI server to convert the audio from the MP4 file into text.
-	DetectQueue *ProcessQueue `json:"asr,omitempty"`
+	DetectQueue *AccidentQueue `json:"asr,omitempty"`
 	// The fix queue for the current task. It allows users to manually fix and correct the
 	// ASR-generated text. The overlay task won't start util user fix the ASR text.
-	FixQueue *ProcessQueue `json:"fix,omitempty"`
+	FixQueue *AccidentQueue `json:"fix,omitempty"`
 	// The overlay queue for the current task. It involves drawing ASR (Automatic Speech
 	// Recognition) text onto the video and encoding it into a new video file.
-	FinishQueue *ProcessQueue `json:"overlay,omitempty"`
+	FinishQueue *AccidentQueue `json:"overlay,omitempty"`
 
 	// The previous ASR (Automatic Speech Recognition) text, which serves as a prompt for
 	// generating the next one. AI services may use this previous ASR text as a prompt to
@@ -558,7 +534,7 @@ type ProcessTask struct {
 	signalNewStream chan *SrsStream
 
 	// The process worker.
-	processWorker *ProcessWorker
+	AccidentWorker *AccidentWorker
 
 	// The context for current task.
 	cancel context.CancelFunc
@@ -572,13 +548,13 @@ func NewProcessTask() *ProcessTask {
 		// Generate a UUID for task.
 		UUID: uuid.NewString(),
 		// The live queue for current task.
-		LiveQueue: NewProcessQueue(),
+		LiveQueue: NewAccidentQueue(),
 		// The asr queue for current task.
-		DetectQueue: NewProcessQueue(),
+		DetectQueue: NewAccidentQueue(),
 		// The fix queue for current task.
-		FixQueue: NewProcessQueue(),
+		FixQueue: NewAccidentQueue(),
 		// The overlay queue for current task.
-		FinishQueue: NewProcessQueue(),
+		FinishQueue: NewAccidentQueue(),
 		// Create persistence signal.
 		signalPersistence: make(chan bool, 1),
 		// Create new stream signal.
@@ -693,7 +669,7 @@ func (v *ProcessTask) DriveLiveQueue(ctx context.Context) error {
 
 	// Transcode to image file, such as jpg.
 	imageFile := &TsFile{
-		TsID:     fmt.Sprintf("%v/%v-image-%v", v.processWorker.Stream, segment.TsFile.SeqNo, uuid.NewString()),
+		TsID:     fmt.Sprintf("%v/%v-image-%v", v.AccidentWorker.Stream, segment.TsFile.SeqNo, uuid.NewString()),
 		URL:      segment.TsFile.URL,
 		SeqNo:    segment.TsFile.SeqNo,
 		Duration: segment.TsFile.Duration,
@@ -723,7 +699,7 @@ func (v *ProcessTask) DriveLiveQueue(ctx context.Context) error {
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
-		thumbnailPath := path.Join(conf.Pwd, "containers/objs/nginx/html", v.processWorker.Stream + ".png")
+		thumbnailPath := path.Join(conf.Pwd, "containers/objs/nginx/html", v.AccidentWorker.Stream + ".png")
 		args := []string{
 			"-i", segment.TsFile.File,
 			"-vcodec", "png",

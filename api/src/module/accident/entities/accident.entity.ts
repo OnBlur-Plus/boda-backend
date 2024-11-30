@@ -1,4 +1,3 @@
-import { DatetimeString } from 'src/class-validator/datetime-string';
 import { Stream } from 'src/module/stream/entities/stream.entity';
 import {
   Column,
@@ -35,7 +34,7 @@ export class Accident {
   @Column({ name: 'start_at' })
   startAt: Date;
 
-  @Column({ name: 'end_at' })
+  @Column({ name: 'end_at', nullable: true })
   endAt: Date;
 
   @Column({ type: 'enum', enum: AccidentType })
@@ -44,7 +43,7 @@ export class Accident {
   @Column({ type: 'enum', enum: AccidentLevel })
   level: AccidentLevel;
 
-  @Column({ nullable: true })
+  @Column()
   reason: string;
 
   @Column({ name: 'video_url', nullable: true })

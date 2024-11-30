@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Accident } from './entities/accident.entities';
+import { Accident } from './entities/accident.entity';
 import { AccidentController } from './accident.controller';
 import { AccidentService } from './accident.service';
 import { StreamModule } from 'src/module/stream/stream.module';

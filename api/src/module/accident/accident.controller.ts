@@ -3,6 +3,7 @@ import { AccidentService } from './accident.service';
 import { DatePipe } from './pipe/date.pipe';
 import { UpdateAccidentDto } from './dto/update-accident.dto';
 import { StartAccidentDto } from './dto/start-accident.dto';
+import { EndAccidentDto } from 'src/module/accident/dto/end-accident.dto';
 
 @Controller('accident')
 export class AccidentController {
@@ -34,6 +35,11 @@ export class AccidentController {
   @Post()
   async startAccident(@Body() startAccidentDto: StartAccidentDto) {
     return await this.accidentService.startAccident(startAccidentDto);
+  }
+
+  @Post('end')
+  async endAccident(@Body() endAccidentDto: EndAccidentDto) {
+    return await this.accidentService.endAccident(endAccidentDto.id);
   }
 
   @Post(':accidentId')

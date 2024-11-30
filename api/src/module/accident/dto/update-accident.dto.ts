@@ -1,5 +1,5 @@
 import { IsEnum, IsOptional, IsString } from 'class-validator';
-import { AccidentLevel, AccidentType } from '../entities/accident.entities';
+import { AccidentLevel, AccidentType } from '../entities/accident.entity';
 
 export class UpdateAccidentDto {
   @IsEnum(AccidentType)
@@ -11,6 +11,5 @@ export class UpdateAccidentDto {
   level: AccidentLevel;
 
   @IsString()
-  @IsOptional()
   reason: string;
 }

@@ -36,26 +36,6 @@ export class StreamController {
     return { message: 'Stream ended' };
   }
 
-  @Post('test')
-  @IsPublic()
-  async uploadFile(@Body() body: { file: string }) {
-    const { file } = body;
-
-    if (!file) {
-      throw new BadRequestException('File data or name is missing');
-    }
-
-    return {
-      imageId: 'test-id',
-      x: 0.1,
-      y: 0.1,
-      width: 0.2,
-      height: 0.2,
-      label: 0,
-      score: 0.2,
-    };
-  }
-
   @Post(':streamKey')
   async updateStream(@Param('streamKey') streamKey: string, @Body() updateStreamDto: UpdateStreamDto) {
     return await this.streamService.updateStream(streamKey, updateStreamDto);
