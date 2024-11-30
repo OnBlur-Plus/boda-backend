@@ -91,14 +91,20 @@ func (v *ProcessWorker)	hlsM3u8Handler(ctx context.Context, w http.ResponseWrite
 		return errors.Errorf("invalid stream %v from %v of %v", v.Stream, filename, r.URL.Path)
 	}
 
+	var metaData []string
 	var tsFiles []*TsFile
 	segments := v.task.finishSegments()
 	for _, segment := range segments {
 		tsFiles = append(tsFiles, segment.TsFile)
-	}
 
+		if b, err := json.Marshal(segment.BoundingBox); err != nil {
+			return errors.Wrapf(err, "marshal %v", segment.BoundingBox.String())
+		} else {
+			metaData = append(metaData, string(b))
+		}
+	}
 	contentType, m3u8Body, duration, err := buildLiveM3u8ForLocal(
-		ctx, tsFiles, false, fmt.Sprintf("/detect/hls/%v/", v.Stream),
+		ctx, tsFiles, false, fmt.Sprintf("/detect/hls/%v/", v.Stream), metaData,
 	)
 	if err != nil {
 		return errors.Wrapf(err, "build process m3u8 of %v", tsFiles)
