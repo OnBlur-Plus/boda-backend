@@ -2,7 +2,7 @@ import { Body, Controller, DefaultValuePipe, Delete, Get, Param, ParseIntPipe, P
 import { AccidentService } from './accident.service';
 import { DatePipe } from './pipe/date.pipe';
 import { UpdateAccidentDto } from './dto/update-accident.dto';
-import { CreateAccidentDto } from './dto/create-accident.dto';
+import { StartAccidentDto } from './dto/start-accident.dto';
 
 @Controller('accident')
 export class AccidentController {
@@ -32,8 +32,8 @@ export class AccidentController {
   }
 
   @Post()
-  async createAccident(@Body() createAccidentDto: CreateAccidentDto) {
-    return await this.accidentService.createAccident(createAccidentDto);
+  async startAccident(@Body() startAccidentDto: StartAccidentDto) {
+    return await this.accidentService.startAccident(startAccidentDto);
   }
 
   @Post(':accidentId')

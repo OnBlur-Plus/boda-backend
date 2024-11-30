@@ -1,7 +1,7 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Stream } from 'src/module/stream/entities/stream.entity';
+import { Stream, StreamStatus } from 'src/module/stream/entities/stream.entity';
 import { CreateStreamDto } from './dto/create-stream.dto';
 import { UpdateStreamDto } from './dto/update-stream.dto';
 
@@ -43,5 +43,35 @@ export class StreamService {
 
   async deleteStream(streamKey: string) {
     return await this.streamRepository.delete({ streamKey });
+  }
+
+  async startStream(streamKey: string) {
+    const stream = await this.streamRepository.findOne({ where: { streamKey } });
+
+    if (!stream) {
+      return new NotFoundException('No Stream');
+    }
+
+    return await this.streamRepository.update(
+      { streamKey },
+      {
+        status: StreamStatus.LIVE,
+      },
+    );
+  }
+
+  async endStream(streamKey: string) {
+    const stream = await this.streamRepository.findOne({ where: { streamKey } });
+
+    if (!stream) {
+      return new NotFoundException('No Stream');
+    }
+
+    return await this.streamRepository.update(
+      { streamKey },
+      {
+        status: StreamStatus.IDLE,
+      },
+    );
   }
 }

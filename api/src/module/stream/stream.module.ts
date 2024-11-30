@@ -8,6 +8,6 @@ import { StreamController } from './stream.controller';
   imports: [TypeOrmModule.forFeature([Stream])],
   controllers: [StreamController],
   providers: [StreamService],
-  exports: [TypeOrmModule],
+  exports: [TypeOrmModule, StreamService],
 })
 export class StreamModule {}

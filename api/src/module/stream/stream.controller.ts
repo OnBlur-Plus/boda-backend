@@ -23,6 +23,19 @@ export class StreamController {
     return await this.streamService.createStream(createStreamDto);
   }
 
+  @Post('/verify')
+  @IsPublic()
+  async verifyStream(@Body('streamKey') streamKey: string) {
+    await this.streamService.startStream(streamKey);
+    return { message: 'Stream Verified' };
+  }
+  @Post('/end')
+  @IsPublic()
+  async endStream(@Body('streamKey') streamKey: string) {
+    await this.streamService.endStream(streamKey);
+    return { message: 'Stream ended' };
+  }
+
   @Post('test')
   @IsPublic()
   async uploadFile(@Body() body: { file: string }) {

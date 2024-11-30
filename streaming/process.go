@@ -98,7 +98,7 @@ func (v *ProcessWorker)	hlsM3u8Handler(ctx context.Context, w http.ResponseWrite
 		tsFiles = append(tsFiles, segment.TsFile)
 
 		if b, err := json.Marshal(segment.BoundingBox); err != nil {
-			return errors.Wrapf(err, "marshal %v", segment.BoundingBox.String())
+			return errors.Wrapf(err, "marshal %v", segment.BoundingBox)
 		} else {
 			metaData = append(metaData, string(b))
 		}
@@ -372,19 +372,17 @@ type ProcessDetectSegment struct {
 }
 
 type ProcessDetectResult struct {
-	X float64  `json:"x,omitempty"`
-	Y float64  `json:"y,omitempty"`
-	Width float64  `json:"width,omitempty"`
-	Height float64  `json:"height,omitempty"`
+	BBox []float64  `json:"bbox,omitempty"`
 	Score float64 `json:"score,omitempty"`
-	Label float64 `json:"label,omitempty"`
+	Category float64 `json:"category_id,omitempty"`
+	ImageId string `json:"image_id,omitempty"`
 	// The segments of the text.
 	Segments []ProcessDetectSegment `json:"segments,omitempty"`
 }
 
 func (v ProcessDetectResult) String() string {
 	return fmt.Sprintf("label=%v,x=%v,y=%v,width=%v,height=%v,score=%v,segments=%v",
-		v.Label, v.X, v.Y, v.Width, v.Height, v.Score, len(v.Segments), 
+		v.Category, v.BBox, v.Score, len(v.Segments), 
 	)
 }
 type ProcessSegment struct {
@@ -395,7 +393,7 @@ type ProcessSegment struct {
 	// The extracted image file.
 	ImageFile *TsFile `json:"image,omitempty"`
 
-	BoundingBox *ProcessDetectResult `json:"bounding,omitempty"`
+	BoundingBox []ProcessDetectResult `json:"bounding,omitempty"`
 	// The starttime for live stream to adjust the srt.
 	StreamStarttime time.Duration `json:"sst,omitempty"`
 	// The generated SRT file from ASR result.
@@ -657,9 +655,6 @@ func (v *ProcessTask) OnTsSegment(ctx context.Context, msg *SrsOnHlsObject) erro
 		v.LiveQueue.enqueue(&ProcessSegment{
 			Msg:    msg.Msg,
 			TsFile: msg.TsFile,
-			BoundingBox: &ProcessDetectResult{
-
-			},
 		})
 	}()
 
@@ -769,21 +764,10 @@ func (v *ProcessTask) DriveDetectQueue(ctx context.Context) error {
 		imageData = base64.StdEncoding.EncodeToString(data)
 	}
 	
-	err := postImageBase64(ctx, "http://127.0.0.1:5000/stream/test/", imageData, segment.BoundingBox);
+	err := postImageBase64(ctx, "http://121.78.254.27:10080/ai", imageData, &segment.BoundingBox);
 	
 	if err != nil {
 		return errors.Wrapf(err, "post image %v (%v)", segment.ImageFile.File, len(imageData))
-	}
-
-	// TODO: FIXME: We should generate a set of images and use the best one.
-	args := []string {
-		"-i", segment.TsFile.File,
-		"-c", "copy",
-		"-metadata", segment.BoundingBox.String(),
-		"-y", segment.TsFile.File,
-	}
-	if err := exec.CommandContext(ctx, "ffmpeg", args...).Run(); err != nil {
-		return errors.Wrapf(err, "transcode %v", args)
 	}
 
 	// Discover the starttime of the segment.
@@ -822,8 +806,8 @@ func (v *ProcessTask) DriveDetectQueue(ctx context.Context) error {
 		defer v.lock.Unlock()
 		v.FinishQueue.enqueue(segment)
 	}()
-	logger.Tf(ctx, "process: detect image=%v, cost=%v %v",
-		segment.ImageFile.File, segment.CostProcess, segment.BoundingBox)
+	logger.Tf(ctx, "process: detect image=%v, cost=%v",
+		segment.ImageFile.File, segment.CostProcess)
 
 	// Notify the main loop to persistent current task.
 	v.notifyPersistence(ctx)

@@ -1,13 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Accident } from './entities/accident.entities';
 import { Between, Repository } from 'typeorm';
 import { UpdateAccidentDto } from './dto/update-accident.dto';
-import { CreateAccidentDto } from './dto/create-accident.dto';
+import { StartAccidentDto } from 'src/module/accident/dto/start-accident.dto';
+import { StreamService } from 'src/module/stream/stream.service';
 
 @Injectable()
 export class AccidentService {
-  constructor(@InjectRepository(Accident) private readonly accidentRepository: Repository<Accident>) {}
+  constructor(
+    @InjectRepository(Accident) private readonly accidentRepository: Repository<Accident>,
+    private readonly streamService: StreamService,
+  ) {}
 
   async getAccidents(pageNum: number, pageSize: number) {
     return await this.accidentRepository.find({
@@ -35,8 +39,26 @@ export class AccidentService {
     return await this.accidentRepository.findOne({ where: { id }, relations: ['stream'] });
   }
 
-  async createAccident(createAccidentDto: CreateAccidentDto) {
-    return await this.accidentRepository.save(createAccidentDto);
+  async startAccident(startAccidentDto: StartAccidentDto) {
+    const { type, reason, streamKey } = startAccidentDto;
+    const stream = this.streamService.findStream(streamKey);
+
+    if (!stream) {
+      throw new NotFoundException('Not Found Stream');
+    }
+
+    const accident = this.accidentRepository.create({
+      type,
+      reason,
+      startAt: new Date(),
+      level: 1,
+      streamKey,
+    });
+
+    return await this.accidentRepository.save(accident);
+  }
+  async endAccident(id: number) {
+    return await this.accidentRepository.update(id, { endAt: Date() });
   }
 
   async updateAccident(accidentId: number, updateaccidentDto: UpdateAccidentDto) {
