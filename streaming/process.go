@@ -366,10 +366,10 @@ type ProcessDetectSegment struct {
 }
 
 type ProcessDetectResult struct {
-	X1 float64  `json:"x1,omitempty"`
-	Y1 float64  `json:"y1,omitempty"`
-	X2 float64  `json:"x2,omitempty"`
-	Y2 float64  `json:"y2,omitempty"`
+	X float64  `json:"x,omitempty"`
+	Y float64  `json:"y,omitempty"`
+	Width float64  `json:"width,omitempty"`
+	Height float64  `json:"height,omitempty"`
 	Score float64 `json:"score,omitempty"`
 	Label float64 `json:"label,omitempty"`
 	// The segments of the text.
@@ -377,8 +377,8 @@ type ProcessDetectResult struct {
 }
 
 func (v ProcessDetectResult) String() string {
-	return fmt.Sprintf("label=%v, x1=%v, x2=%v, y1=%v, y2=%v, score=%v, segments=%v",
-		v.Label, v.X1, v.X2, v.Y1, v.Y2, v.Score, len(v.Segments), 
+	return fmt.Sprintf("label=%v, x=%v, y=%v, width=%v, height=%v, score=%v, segments=%v",
+		v.Label, v.X, v.Y, v.Width, v.Height, v.Score, len(v.Segments), 
 	)
 }
 
@@ -652,6 +652,9 @@ func (v *ProcessTask) OnTsSegment(ctx context.Context, msg *SrsOnHlsObject) erro
 		v.LiveQueue.enqueue(&ProcessSegment{
 			Msg:    msg.Msg,
 			TsFile: msg.TsFile,
+			BoundingBox: &ProcessDetectResult{
+
+			},
 		})
 	}()
 
@@ -760,7 +763,12 @@ func (v *ProcessTask) DriveDetectQueue(ctx context.Context) error {
 	} else {
 		imageData = base64.StdEncoding.EncodeToString(data)
 	}
-	body, err := postImageBase64("something", imageData)
+	
+	err := postImageBase64(ctx, "http://127.0.0.1:5000/stream/test/", imageData, segment.BoundingBox);
+	
+	if err != nil {
+		return errors.Wrapf(err, "post image %v (%v)", segment.ImageFile.File, len(imageData))
+	}
 
 	// Discover the starttime of the segment.
 	stdout, err := exec.CommandContext(ctx, "ffprobe",
@@ -798,8 +806,8 @@ func (v *ProcessTask) DriveDetectQueue(ctx context.Context) error {
 		defer v.lock.Unlock()
 		v.FinishQueue.enqueue(segment)
 	}()
-	logger.Tf(ctx, "process: detect image=%v, resp=%v, cost=%v",
-		segment.ImageFile.File, body, segment.CostProcess)
+	logger.Tf(ctx, "process: detect image=%v, cost=%v %v",
+		segment.ImageFile.File, segment.CostProcess, segment.BoundingBox)
 
 	// Notify the main loop to persistent current task.
 	v.notifyPersistence(ctx)
