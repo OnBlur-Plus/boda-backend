@@ -2,6 +2,8 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Stream } from 'src/module/stream/entities/stream.entity';
+import { CreateStreamDto } from './dto/create-stream.dto';
+import { UpdateStreamDto } from './dto/update-stream.dto';
 
 @Injectable()
 export class StreamService {
@@ -14,7 +16,7 @@ export class StreamService {
     return await this.streamRepository.find();
   }
 
-  async findOne(streamKey: string) {
+  async findStream(streamKey: string) {
     return await this.streamRepository.findOne({ where: { streamKey } });
   }
 
@@ -29,5 +31,17 @@ export class StreamService {
     }
 
     return true;
+  }
+
+  async createStream(createStreamDto: CreateStreamDto) {
+    return await this.streamRepository.save(createStreamDto);
+  }
+
+  async updateStream(streamKey: string, updateStreamDto: UpdateStreamDto) {
+    return await this.streamRepository.update({ streamKey }, updateStreamDto);
+  }
+
+  async deleteStream(streamKey: string) {
+    return await this.streamRepository.delete({ streamKey });
   }
 }

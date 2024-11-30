@@ -1,6 +1,8 @@
-import { BadRequestException, Body, Controller, Get, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Get, Param, Post } from '@nestjs/common';
 import { StreamService } from './stream.service';
 import { IsPublic } from '../auth/auth.guard';
+import { CreateStreamDto } from './dto/create-stream.dto';
+import { UpdateStreamDto } from './dto/update-stream.dto';
 
 @Controller('stream')
 export class StreamController {
@@ -13,7 +15,12 @@ export class StreamController {
 
   @Get(':streamKey')
   async getStream(streamKey: string) {
-    return await this.streamService.findOne(streamKey);
+    return await this.streamService.findStream(streamKey);
+  }
+
+  @Post()
+  async createStream(@Body() createStreamDto: CreateStreamDto) {
+    return await this.streamService.createStream(createStreamDto);
   }
 
   @Post('test')
@@ -34,5 +41,15 @@ export class StreamController {
       label: 0,
       score: 0.2,
     };
+  }
+
+  @Post(':streamKey')
+  async updateStream(@Param('streamKey') streamKey: string, @Body() updateStreamDto: UpdateStreamDto) {
+    return await this.streamService.updateStream(streamKey, updateStreamDto);
+  }
+
+  @Delete(':streamKey')
+  async deleteStream(@Param('streamKey') streamKey: string) {
+    return await this.streamService.deleteStream(streamKey);
   }
 }

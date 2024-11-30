@@ -2,6 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Accident } from './entities/accident.entities';
 import { Between, Repository } from 'typeorm';
+import { UpdateAccidentDto } from './dto/update-accident.dto';
+import { CreateAccidentDto } from './dto/create-accident.dto';
 
 @Injectable()
 export class AccidentService {
@@ -33,7 +35,15 @@ export class AccidentService {
     return await this.accidentRepository.findOne({ where: { id }, relations: ['stream'] });
   }
 
-  async createAccident(accident: Omit<Accident, 'id' | 'createdAt' | 'updatedAt'>) {
-    return await this.accidentRepository.save(accident);
+  async createAccident(createAccidentDto: CreateAccidentDto) {
+    return await this.accidentRepository.save(createAccidentDto);
+  }
+
+  async updateAccident(accidentId: number, updateaccidentDto: UpdateAccidentDto) {
+    return await this.accidentRepository.update(accidentId, updateaccidentDto);
+  }
+
+  async deleteAccident(accidentId: number) {
+    return await this.accidentRepository.delete(accidentId);
   }
 }

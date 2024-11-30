@@ -1,6 +1,8 @@
-import { Controller, DefaultValuePipe, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import { Body, Controller, DefaultValuePipe, Delete, Get, Param, ParseIntPipe, Post, Query } from '@nestjs/common';
 import { AccidentService } from './accident.service';
 import { DatePipe } from './pipe/date.pipe';
+import { UpdateAccidentDto } from './dto/update-accident.dto';
+import { CreateAccidentDto } from './dto/create-accident.dto';
 
 @Controller('accident')
 export class AccidentController {
@@ -27,5 +29,23 @@ export class AccidentController {
   @Get('detail/:id')
   async getAccident(@Param('id', ParseIntPipe) id: number) {
     return await this.accidentService.getAccidentWithStream(id);
+  }
+
+  @Post()
+  async createAccident(@Body() createAccidentDto: CreateAccidentDto) {
+    return await this.accidentService.createAccident(createAccidentDto);
+  }
+
+  @Post(':accidentId')
+  async upateAccident(
+    @Param('accidentId', ParseIntPipe) accidentId: number,
+    @Body() updateAccidentDto: UpdateAccidentDto,
+  ) {
+    return await this.accidentService.updateAccident(accidentId, updateAccidentDto);
+  }
+
+  @Delete(':accidentId')
+  async deleteAccident(@Param('accidentId', ParseIntPipe) accidentId: number) {
+    return await this.accidentService.deleteAccident(accidentId);
   }
 }

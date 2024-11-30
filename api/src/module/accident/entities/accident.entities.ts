@@ -28,9 +28,8 @@ export class Accident {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @JoinColumn({ name: 'stream_key' })
-  @ManyToOne(() => Stream, { cascade: true })
-  stream: Stream;
+  @Column({ name: 'stream_key' })
+  streamKey: string;
 
   @Column({ name: 'start_at' })
   startAt: Date;
@@ -55,4 +54,8 @@ export class Accident {
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  @JoinColumn({ name: 'stream_key' })
+  @ManyToOne(() => Stream, { cascade: true })
+  stream: Stream;
 }
