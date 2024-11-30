@@ -8,6 +8,7 @@ import { HealthModule } from './health/health.module';
 import { StreamModule } from 'src/module/stream/stream.module';
 import { AuthModule } from './auth/auth.module';
 import { NotificationModule } from './notification/notification.module';
+import { PlaceModule } from 'src/module/place/place.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { NotificationModule } from './notification/notification.module';
     TypeOrmModule.forRootAsync({
       useExisting: TypeORMConfigService,
     }),
+    PlaceModule,
     AccidentModule,
     HealthModule,
     StreamModule,

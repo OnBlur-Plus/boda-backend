@@ -19,6 +19,9 @@ export class AuthService {
       throw new UnauthorizedException();
     }
 
-    return { access_token: await this.jwtService.signAsync({ userId: user.id }) };
+    return {
+      accessToken: await this.jwtService.signAsync({ userId: user.id }),
+      isDeviceTokenRequired: !user.deviceToken,
+    };
   }
 }
