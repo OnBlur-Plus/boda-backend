@@ -54,6 +54,7 @@ func doMain(ctx context.Context) error {
 		}
 	}()
 
+
 	// When cancelled, the program is forced to exit due to a timeout. Normally, this doesn't occur
 	// because the main thread exits after the context is cancelled. However, sometimes the main thread
 	// may be blocked for some reason, so a forced exit is necessary to ensure the program terminates.
@@ -126,6 +127,12 @@ func doMain(ctx context.Context) error {
 		return errors.Wrapf(err, "init os")
 	}
 
+	accidentWorker = NewAccidentWorker()
+	defer accidentWorker.Close()
+	if err := accidentWorker.Start(ctx); err != nil {
+		return errors.Wrapf(err, "start accident worker")
+	}
+
 	detectWorker = NewDetectWorker()
 	defer detectWorker.Close()
 	if err := detectWorker.Start(ctx); err != nil {
@@ -154,7 +161,7 @@ func initialize(ctx context.Context) error {
 	// Keep in mind that the containers/data/srs-s3-bucket maybe mount by user, because user should generate
 	// and mount it if they wish to save recordings to cloud storage.
 	for _, dir := range []string{
-		"containers/data/record", "containers/data/config", "containers/data/srs-s3-bucket", "containers/data/detect", "containers/data/process",
+		"containers/data/record", "containers/data/config", "containers/data/accident", "containers/data/detect", "containers/data/process",
 		// "containers/data/dvr", "containers/data/vod",
 		// "containers/data/upload", "containers/data/vlive", "containers/data/signals",
 		// "containers/data/lego", "containers/data/.well-known",

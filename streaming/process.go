@@ -29,6 +29,7 @@ import (
 // The total segments in overlay HLS.
 const maxFinishSegments = 9
 
+
 type ProcessWorker struct {
 	cancel context.CancelFunc
 	wg     sync.WaitGroup
@@ -375,7 +376,7 @@ type ProcessDetectSegment struct {
 type ProcessDetectResult struct {
 	BBox []float64  `json:"bbox,omitempty"`
 	Score float64 `json:"score,omitempty"`
-	Category float64 `json:"category_id,omitempty"`
+	Category int `json:"category_id,omitempty"`
 	ImageId string `json:"image_id,omitempty"`
 	// The segments of the text.
 	Segments []ProcessDetectSegment `json:"segments,omitempty"`
@@ -397,8 +398,6 @@ type ProcessSegment struct {
 	BoundingBox []ProcessDetectResult `json:"bounding,omitempty"`
 	// The starttime for live stream to adjust the srt.
 	StreamStarttime time.Duration `json:"sst,omitempty"`
-	// The generated SRT file from ASR result.
-	SrtFile string `json:"srt,omitempty"`
 
 	// The cost to transcode the TS file to image file.
 	CostExtractImage time.Duration `json:"eic,omitempty"`
@@ -439,13 +438,6 @@ func (v *ProcessSegment) Dispose() error {
 	if v.ImageFile != nil {
 		if _, err := os.Stat(v.ImageFile.File); err == nil {
 			os.Remove(v.ImageFile.File)
-		}
-	}
-
-	// Remove the SRT file.
-	if v.SrtFile != "" {
-		if _, err := os.Stat(v.SrtFile); err == nil {
-			os.Remove(v.SrtFile)
 		}
 	}
 
@@ -803,6 +795,17 @@ func (v *ProcessTask) DriveDetectQueue(ctx context.Context) error {
 	
 	if err != nil {
 		logger.Wf(err, "post image %v (%v)", segment.ImageFile.File, len(imageData))
+	} else if len(segment.BoundingBox) > 0 {
+		for _, box := range segment.BoundingBox {
+			if _, exists := categories[box.Category]; exists {
+				accidentWorker.OnAccidentAdded(ctx, &box, segment.TsFile, &SrsStream{
+					Vhost: segment.Msg.Vhost,
+					App: segment.Msg.App,
+					Stream: segment.Msg.Stream,
+				})
+				logger.Tf(ctx, "boundingbox category %v %v", box.Category, v.inputStream)
+			}
+		}
 	}
 
 	// Discover the starttime of the segment.

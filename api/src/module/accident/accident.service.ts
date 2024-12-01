@@ -7,6 +7,7 @@ import { StartAccidentDto } from 'src/module/accident/dto/start-accident.dto';
 import { StreamService } from 'src/module/stream/stream.service';
 import { NotificationService } from '../notification/notification.service';
 import { ACCIDENT_METADATA } from 'src/constant/accident';
+import { EndAccidentDto } from 'src/module/accident/dto/end-accident.dto';
 
 @Injectable()
 export class AccidentService {
@@ -62,11 +63,16 @@ export class AccidentService {
     await this.accidentRepository.save(accident);
     await this.notificationService.sendNotificationToAllUsers(accident);
 
-    return accident;
+    return {
+      id: accident.id,
+    };
   }
 
-  async endAccident(id: number) {
-    return await this.accidentRepository.update(id, { endAt: Date() });
+  async endAccident(endAccidentDto: EndAccidentDto) {
+    return await this.accidentRepository.update(endAccidentDto.id, {
+      endAt: Date(),
+      videoUrl: endAccidentDto.videoUrl,
+    });
   }
 
   async updateAccident(accidentId: number, updateaccidentDto: UpdateAccidentDto) {

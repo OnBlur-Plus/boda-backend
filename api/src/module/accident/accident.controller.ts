@@ -42,7 +42,7 @@ export class AccidentController {
   @Post('end')
   @IsPublic()
   async endAccident(@Body() endAccidentDto: EndAccidentDto) {
-    return await this.accidentService.endAccident(endAccidentDto.id);
+    return await this.accidentService.endAccident(endAccidentDto);
   }
 
   @Post(':accidentId')
