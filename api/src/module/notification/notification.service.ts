@@ -24,6 +24,7 @@ export class NotificationService {
       where: { user: { id: userId } },
       skip: (pageNum - 1) * pageSize,
       take: pageSize,
+      order: { createdAt: 'DESC' },
       relations: ['notificationContent'],
     });
 

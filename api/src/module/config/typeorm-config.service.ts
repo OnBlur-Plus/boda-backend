@@ -15,7 +15,6 @@ export class TypeORMConfigService
     return this;
   }
   type = 'mariadb' as const;
-  timezone = 'Asia/Seoul';
 
   @Expose({ name: 'DATABASE_HOST' })
   @Transform(({ value }) => value ?? 'localhost')
