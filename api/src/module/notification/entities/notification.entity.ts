@@ -1,12 +1,4 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from 'src/module/auth/entities/user.entity';
 import { NotificationContent } from './notification-content.entity';
 import { Accident } from 'src/module/accident/entities/accident.entity';
@@ -32,11 +24,8 @@ export class Notification {
   @Column({ name: 'readed_at', nullable: true })
   readedAt: Date | null;
 
-  @CreateDateColumn({ name: 'created_at' })
+  @Column({ name: 'created_at' })
   createdAt: Date;
-
-  @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
 
   @JoinColumn({ name: 'notification_content_id' })
   @ManyToOne(() => NotificationContent, { cascade: true })

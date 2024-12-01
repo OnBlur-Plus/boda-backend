@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Accident } from './entities/accident.entity';
+import { Accident, AccidentLevel, AccidentType } from './entities/accident.entity';
 import { Between, Repository } from 'typeorm';
 import { UpdateAccidentDto } from './dto/update-accident.dto';
 import { StartAccidentDto } from 'src/module/accident/dto/start-accident.dto';
@@ -41,8 +41,21 @@ export class AccidentService {
     return await this.accidentRepository.findOne({ where: { id }, relations: ['stream'] });
   }
 
+  getAccidentLevel(type: AccidentType) {
+    switch (type) {
+      case AccidentType.NON_SAFETY_VEST:
+      case AccidentType.NON_SAFETY_HELMET:
+      case AccidentType.USE_PHONE_WHILE_WORKING:
+        return AccidentLevel.LOW;
+      case AccidentType.FALL:
+        return AccidentLevel.MEDIUM;
+      case AccidentType.SOS_REQUEST:
+        return AccidentLevel.HIGH;
+    }
+  }
+
   async startAccident(startAccidentDto: StartAccidentDto) {
-    const { type, reason, streamKey } = startAccidentDto;
+    const { type, reason, streamKey, startAt } = startAccidentDto;
     const stream = this.streamService.findStream(streamKey);
 
     if (!stream) {
@@ -52,9 +65,10 @@ export class AccidentService {
     const accident = this.accidentRepository.create({
       type,
       reason,
-      startAt: new Date(),
-      level: 1,
+      startAt,
+      level: this.getAccidentLevel(type),
       streamKey,
+      createdAt: startAt,
     });
 
     await this.accidentRepository.save(accident);
