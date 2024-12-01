@@ -7,7 +7,7 @@ import { User } from '../auth/entities/user.entity';
 import { Notification } from './entities/notification.entity';
 import { NotificationContent } from './entities/notification-content.entity';
 import { FirebaseConfigService } from '../config/firebase-config.service';
-import { Accident } from '../accident/entities/accident.entity';
+import { Accident, AccidentLevel } from '../accident/entities/accident.entity';
 
 @Injectable()
 export class NotificationService {
@@ -46,8 +46,11 @@ export class NotificationService {
       const results = await FirebaseAdmin.messaging().sendEachForMulticast({
         tokens: users.map((user) => user.deviceToken),
         notification: { title: notificationContent.title, body: notificationContent.body },
+        android: { priority: accident.level === AccidentLevel.HIGH ? 'high' : 'normal' },
         data: { accidentId: accident.id.toString() },
       });
+
+      const createdAt = new Date();
 
       return await manager.save(
         Notification,
@@ -56,6 +59,7 @@ export class NotificationService {
           accident: { id: accident.id },
           notificationContent: { id: notificationContent.id },
           isSent: results.responses[index].success,
+          createdAt,
         })),
       );
     });
