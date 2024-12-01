@@ -47,6 +47,7 @@ export class NotificationService {
         tokens: users.map((user) => user.deviceToken),
         notification: { title: notificationContent.title, body: notificationContent.body },
         android: { priority: accident.level === AccidentLevel.HIGH ? 'high' : 'normal' },
+        apns: { payload: { aps: { contentAvailable: accident.level === AccidentLevel.HIGH } } },
         data: { accidentId: accident.id.toString() },
       });
 
