@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, IsUUID } from 'class-validator';
+import { IsEnum, IsString, IsUUID } from 'class-validator';
 import { AccidentType } from '../entities/accident.entity';
 
 export class StartAccidentDto {
@@ -6,7 +6,6 @@ export class StartAccidentDto {
   type: AccidentType;
 
   @IsString()
-  @IsOptional()
   reason: string;
 
   @IsUUID()

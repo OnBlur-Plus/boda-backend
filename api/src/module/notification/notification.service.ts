@@ -7,6 +7,7 @@ import { User } from '../auth/entities/user.entity';
 import { Notification } from './entities/notification.entity';
 import { NotificationContent } from './entities/notification-content.entity';
 import { FirebaseConfigService } from '../config/firebase-config.service';
+import { Accident } from '../accident/entities/accident.entity';
 
 @Injectable()
 export class NotificationService {
@@ -35,23 +36,24 @@ export class NotificationService {
     return await this.userRepository.update({ id: userId }, { deviceToken });
   }
 
-  async sendNotificationToAllUsers(title: string, body: string, accidentId: number) {
+  async sendNotificationToAllUsers(accident: Accident) {
     return await this.dataSource.transaction(async (manager) => {
       const [users, notificationContent] = await Promise.all([
         manager.find(User),
-        manager.save(NotificationContent, { title, body, accident: { id: accidentId } }),
+        manager.findOne(NotificationContent, { where: { id: accident.type } }),
       ]);
 
       const results = await FirebaseAdmin.messaging().sendEachForMulticast({
         tokens: users.map((user) => user.deviceToken),
-        notification: { title, body },
-        data: { accidentId: accidentId.toString() },
+        notification: { title: notificationContent.title, body: notificationContent.body },
+        data: { accidentId: accident.id.toString() },
       });
 
       return await manager.save(
         Notification,
         users.map((user, index) => ({
           user: { id: user.id },
+          accident: { id: accident.id },
           notificationContent: { id: notificationContent.id },
           isSent: results.responses[index].success,
         })),

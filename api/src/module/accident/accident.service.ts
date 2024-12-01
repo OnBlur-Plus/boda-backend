@@ -5,12 +5,14 @@ import { Between, Repository } from 'typeorm';
 import { UpdateAccidentDto } from './dto/update-accident.dto';
 import { StartAccidentDto } from 'src/module/accident/dto/start-accident.dto';
 import { StreamService } from 'src/module/stream/stream.service';
+import { NotificationService } from '../notification/notification.service';
 
 @Injectable()
 export class AccidentService {
   constructor(
     @InjectRepository(Accident) private readonly accidentRepository: Repository<Accident>,
     private readonly streamService: StreamService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async getAccidents(pageNum: number, pageSize: number) {
@@ -55,8 +57,12 @@ export class AccidentService {
       streamKey,
     });
 
-    return await this.accidentRepository.save(accident);
+    await this.accidentRepository.save(accident);
+    await this.notificationService.sendNotificationToAllUsers(accident);
+
+    return accident;
   }
+
   async endAccident(id: number) {
     return await this.accidentRepository.update(id, { endAt: Date() });
   }

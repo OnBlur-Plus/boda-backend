@@ -1,18 +1,9 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  JoinColumn,
-  ManyToOne,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
-import { Accident } from 'src/module/accident/entities/accident.entity';
+import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity()
 export class NotificationContent {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryColumn({ comment: 'Accident Type' })
+  id: string;
 
   @Column()
   title: string;
@@ -20,16 +11,9 @@ export class NotificationContent {
   @Column()
   body: string;
 
-  @Column({ name: 'accident_id' })
-  accidentId: number;
-
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
-
-  @JoinColumn({ name: 'accident_id' })
-  @ManyToOne(() => Accident, { cascade: true })
-  accident: Accident;
 }
