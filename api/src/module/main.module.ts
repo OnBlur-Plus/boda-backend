@@ -9,6 +9,7 @@ import { StreamModule } from 'src/module/stream/stream.module';
 import { AuthModule } from './auth/auth.module';
 import { NotificationModule } from './notification/notification.module';
 import { PlaceModule } from 'src/module/place/place.module';
+import { DatabaseInitializeService } from 'src/module/database-initialize.service';
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { PlaceModule } from 'src/module/place/place.module';
     AuthModule,
     NotificationModule,
   ],
-  providers: [{ provide: 'APP_GUARD', useClass: AuthGuard }],
+  providers: [{ provide: 'APP_GUARD', useClass: AuthGuard }, DatabaseInitializeService],
   exports: [],
 })
 export class MainModule {}
