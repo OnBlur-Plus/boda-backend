@@ -27,5 +27,5 @@ COPY --from=development /app/.env .
 RUN npm ci --only=production
 
 EXPOSE 5000
-ENTRYPOINT [ "npm", "run", "make:migrate", "&& npm", "run" ]
-CMD [ "start:prod" ]
+ENTRYPOINT ["/bin/sh", "-c", "npm run make:migrate && npm run start:prod" ]
+CMD [ "npm", "run", "start:prod" ]
