@@ -1,18 +1,30 @@
-FROM node:18-alpine AS builder
+# Development Stage
+FROM node:18-alpine as development
+
+WORKDIR /app
+
 COPY package*.json ./
+
 RUN npm install
-COPY . ./
+
+COPY . .
+
 RUN npm run build
 
-FROM node:18-alpine AS node_modules
-COPY package*.json ./
-RUN npm install --production
-
+# Production Stage
 FROM node:18-alpine as production
-COPY --from=node_modules /node_modules ./node_modules
-COPY --from=builder /package*.json ./
-COPY --from=builder /dist ./dist
-COPY --from=builder /.env ./.env
+
+ARG NODE_ENV=production
+ENV NODE_ENV=${NODE_ENV}
+
+WORKDIR /app
+
+COPY --from=development /app/dist ./dist
+COPY --from=development /app/package.json .
+COPY --from=development /app/package-lock.json .
+COPY --from=development /app/.env .
+
+RUN npm ci --only=production
 
 EXPOSE 5000
 CMD [ "npm", "run", "start:prod" ]
