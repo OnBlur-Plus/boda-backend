@@ -1,5 +1,5 @@
 # Development Stage
-FROM node:18-alpine as development
+FROM node:18-alpine AS development
 
 WORKDIR /app
 
@@ -12,7 +12,7 @@ COPY . .
 RUN npm run build
 
 # Production Stage
-FROM node:18-alpine as production
+FROM node:18-alpine AS production
 
 ARG NODE_ENV=production
 ENV NODE_ENV=${NODE_ENV}
@@ -27,4 +27,5 @@ COPY --from=development /app/.env .
 RUN npm ci --only=production
 
 EXPOSE 5000
-CMD [ "npm", "run", "start:prod" ]
+ENTRYPOINT [ "npm", "run", "make:migrate", "&& npm", "run" ]
+CMD [ "start:prod" ]
